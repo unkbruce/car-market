@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Car, ChevronDown, CirclePlus, RotateCcw, Search, X } from 'lucide-react';
+import { ChevronDown, RotateCcw, Search, X } from 'lucide-react';
 import api from '../api/api.js';
 import CarCard from '../components/CarCard.jsx';
+import Header from '../components/Header.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 
 const INITIAL_FILTERS = {
@@ -287,26 +288,7 @@ function CarListPage() {
 
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-950">
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white shadow-[0_1px_6px_rgba(15,23,42,0.06)]">
-        <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between px-4 sm:px-5 lg:px-6">
-          <div className="flex items-center gap-2.5">
-            <div className="grid h-9 w-9 place-items-center rounded-lg bg-blue-600 text-white shadow-sm">
-              <Car size={19} strokeWidth={2.4} />
-            </div>
-            <h1 className="text-base font-extrabold tracking-tight text-slate-900 sm:text-lg">실시간 Car Market</h1>
-          </div>
-
-          <nav className="flex items-center gap-1.5 text-sm font-medium text-slate-600 sm:gap-3">
-            <button type="button" className="rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700">
-              차량 목록
-            </button>
-            <button type="button" className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-semibold transition hover:bg-slate-100 hover:text-slate-950 sm:px-2.5">
-              <CirclePlus size={16} />
-              차량 등록
-            </button>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       <div className="mx-auto max-w-[1200px] px-3 pb-16 pt-3.5 sm:px-4 lg:px-5">
         <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">

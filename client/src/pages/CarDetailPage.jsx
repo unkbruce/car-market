@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/api.js';
+import Header from '../components/Header.jsx';
 import CarImagePlaceholder from '../components/CarImagePlaceholder.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import { formatDistance, formatPrice } from '../utils/formatters.js';
@@ -70,12 +71,7 @@ function CarDetailPage() {
 
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-950">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-6 lg:px-8">
-          <Link to="/" className="text-lg font-black tracking-tight text-slate-950">CAR MARKET</Link>
-          <div className="text-sm font-semibold text-slate-500">매물 상세</div>
-        </div>
-      </header>
+      <Header subtitle="매물 상세" />
 
       <div className="mx-auto max-w-7xl px-5 py-6 sm:px-6 lg:px-8 lg:py-8">
         <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
