@@ -4,6 +4,7 @@ import { getDB } from '../config/db.js';
 const CARS_COLLECTION = 'cars';
 const NUMERIC_FIELDS = ['price', 'year', 'mileage'];
 const REQUIRED_FIELDS = ['name', 'company', 'price', 'year'];
+const SEARCH_NUMERIC_FIELDS = ['minPrice', 'maxPrice', 'minYear', 'maxYear'];
 
 function getCarsCollection() {
   return getDB().collection(CARS_COLLECTION);
@@ -42,6 +43,87 @@ function hasInvalidNumericFields(payload) {
   return NUMERIC_FIELDS.some((field) => payload[field] !== undefined && Number.isNaN(payload[field]));
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function parseSearchNumber(value, fieldName) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === '') {
+    const error = new Error(`${fieldName} must be a number.`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const parsedValue = Number(value);
+
+  if (Number.isNaN(parsedValue)) {
+    const error = new Error(`${fieldName} must be a number.`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return parsedValue;
+}
+
+function buildSearchFilter(query) {
+  const { keyword, company, minPrice, maxPrice, minYear, maxYear } = query;
+  const filter = {};
+
+  for (const field of SEARCH_NUMERIC_FIELDS) {
+    parseSearchNumber(query[field], field);
+  }
+
+  if (keyword) {
+    filter.name = {
+      $regex: escapeRegExp(keyword),
+      $options: 'i',
+    };
+  }
+
+  if (company) {
+    filter.company = {
+      $regex: escapeRegExp(company),
+      $options: 'i',
+    };
+  }
+
+  const parsedMinPrice = parseSearchNumber(minPrice, 'minPrice');
+  const parsedMaxPrice = parseSearchNumber(maxPrice, 'maxPrice');
+
+  if (parsedMinPrice !== undefined || parsedMaxPrice !== undefined) {
+    filter.price = {};
+
+    if (parsedMinPrice !== undefined) {
+      filter.price.$gte = parsedMinPrice;
+    }
+
+    if (parsedMaxPrice !== undefined) {
+      filter.price.$lte = parsedMaxPrice;
+    }
+  }
+
+  const parsedMinYear = parseSearchNumber(minYear, 'minYear');
+  const parsedMaxYear = parseSearchNumber(maxYear, 'maxYear');
+
+  if (parsedMinYear !== undefined || parsedMaxYear !== undefined) {
+    filter.year = {};
+
+    if (parsedMinYear !== undefined) {
+      filter.year.$gte = parsedMinYear;
+    }
+
+    if (parsedMaxYear !== undefined) {
+      filter.year.$lte = parsedMaxYear;
+    }
+  }
+
+  return filter;
+}
+
 export async function getCars(req, res) {
   try {
     const cars = await getCarsCollection().find({}).sort({ createdAt: -1 }).toArray();
@@ -52,6 +134,20 @@ export async function getCars(req, res) {
     });
   } catch (error) {
     return sendError(res, 500, error.message);
+  }
+}
+
+export async function searchCars(req, res) {
+  try {
+    const filter = buildSearchFilter(req.query);
+    const cars = await getCarsCollection().find(filter).sort({ createdAt: -1 }).toArray();
+
+    return res.json({
+      success: true,
+      data: cars,
+    });
+  } catch (error) {
+    return sendError(res, error.statusCode || 500, error.message);
   }
 }
 
