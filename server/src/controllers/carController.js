@@ -43,6 +43,32 @@ function hasInvalidNumericFields(payload) {
   return NUMERIC_FIELDS.some((field) => payload[field] !== undefined && Number.isNaN(payload[field]));
 }
 
+function createRequestError(statusCode, message) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function validateCarPayload(carData, prefix = '') {
+  if (hasMissingRequiredFields(carData)) {
+    throw createRequestError(400, `${prefix}name, company, price, and year are required.`);
+  }
+
+  if (hasInvalidNumericFields(carData)) {
+    throw createRequestError(400, `${prefix}price, year, and mileage must be numbers.`);
+  }
+}
+
+function buildCarDocument(payload, timestamp) {
+  const carData = normalizeCarPayload(payload);
+
+  return {
+    ...carData,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -176,22 +202,40 @@ export async function getCarById(req, res) {
 
 export async function createCar(req, res) {
   try {
-    const carData = normalizeCarPayload(req.body);
-
-    if (hasMissingRequiredFields(carData)) {
-      return sendError(res, 400, 'name, company, price, and year are required.');
-    }
-
-    if (hasInvalidNumericFields(carData)) {
-      return sendError(res, 400, 'price, year, and mileage must be numbers.');
-    }
-
     const now = new Date();
-    const newCar = {
-      ...carData,
-      createdAt: now,
-      updatedAt: now,
-    };
+
+    if (Array.isArray(req.body)) {
+      if (req.body.length === 0) {
+        return sendError(res, 400, 'At least one car is required.');
+      }
+
+      const newCars = req.body.map((car, index) => {
+        const carData = normalizeCarPayload(car);
+        validateCarPayload(carData, `Car at index ${index}: `);
+
+        return {
+          ...carData,
+          createdAt: now,
+          updatedAt: now,
+        };
+      });
+
+      const result = await getCarsCollection().insertMany(newCars);
+      const insertedCars = newCars.map((car, index) => ({
+        _id: result.insertedIds[index],
+        ...car,
+      }));
+
+      return res.status(201).json({
+        success: true,
+        data: insertedCars,
+      });
+    }
+
+    const carData = normalizeCarPayload(req.body);
+    validateCarPayload(carData);
+
+    const newCar = buildCarDocument(carData, now);
 
     const result = await getCarsCollection().insertOne(newCar);
 
@@ -203,7 +247,7 @@ export async function createCar(req, res) {
       },
     });
   } catch (error) {
-    return sendError(res, 500, error.message);
+    return sendError(res, error.statusCode || 500, error.message);
   }
 }
 

@@ -9,12 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "axios": "^1.17.0",
+    "lucide-react": "^1.17.0",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "react-router-dom": "^7.17.0",
+    "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "latest",
     "vite": "latest"
   }
 }
-
