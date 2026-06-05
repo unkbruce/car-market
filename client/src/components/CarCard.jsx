@@ -2,9 +2,13 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { PLACEHOLDER_IMAGE } from './CarImagePlaceholder.jsx';
-import { formatDistance, formatPrice } from '../utils/formatters.js';
+import { formatDistance, formatFuel, formatPrice } from '../utils/formatters.js';
 
 function getCarImage(car) {
+  if (Array.isArray(car.imageUrls) && car.imageUrls.length > 0) {
+    return car.imageUrls[0];
+  }
+
   if (Array.isArray(car.images) && car.images.length > 0) {
     return car.images[0];
   }
@@ -14,13 +18,13 @@ function getCarImage(car) {
 
 function CarCardImage({ imageUrl, name }) {
   const [hasImageError, setHasImageError] = useState(false);
-  const imageClass = 'h-full w-full object-cover object-center transition duration-300 group-hover:scale-[1.02]';
+  const imageClass = 'h-full w-full object-contain object-center transition duration-300 group-hover:scale-[1.02]';
   const shouldShowPlaceholder = !imageUrl || hasImageError;
 
   return (
-    <div className="relative h-[100px] overflow-hidden rounded-t-xl bg-slate-100 lg:h-[106px]">
+    <div className="relative aspect-[4/3] overflow-hidden rounded-t-xl bg-slate-50">
       {shouldShowPlaceholder ? (
-        <img src={PLACEHOLDER_IMAGE} alt="차량 placeholder" className={imageClass} />
+        <img src={PLACEHOLDER_IMAGE} alt="차량 placeholder" className="mx-auto h-full w-[90%] object-contain object-center transition duration-300 group-hover:scale-[1.02]" />
       ) : (
         <img
           src={imageUrl}
@@ -39,7 +43,7 @@ function CarCard({ car }) {
   const imageUrl = getCarImage(car);
 
   return (
-    <article className="group flex h-full min-w-0 max-w-[360px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.11)]">
+    <article className="group flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.11)]">
       <CarCardImage imageUrl={imageUrl} name={car.name} />
 
       <div className="flex flex-1 flex-col p-2.5">
@@ -51,7 +55,7 @@ function CarCard({ car }) {
             {car.year ? `${car.year}년식` : '연식 미정'} · {formatDistance(car.mileage)}
           </p>
           <p className="mt-0.5 text-[12px] leading-tight text-slate-500">
-            {car.fuel || '연료 미정'} · {car.location || '지역 미정'}
+            {formatFuel(car.fuel)} · {car.location || '지역 미정'}
           </p>
           <p className="mt-1.5 text-[18px] font-extrabold leading-none tracking-tight text-slate-950">
             {formatPrice(car.price)}

@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import express from 'express';
 import carsRouter from './routes/cars.js';
 import usersRouter from './routes/users.js';
+import { uploadsDir } from './middleware/upload.js';
 
 dotenv.config();
 
@@ -10,6 +11,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(uploadsDir));
 
 app.use('/api/cars', carsRouter);
 app.use('/api/users', usersRouter);

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import api from '../api/api.js';
 import Header from '../components/Header.jsx';
 import CarImagePlaceholder from '../components/CarImagePlaceholder.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
-import { formatDistance, formatPrice } from '../utils/formatters.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import { formatDistance, formatFuel, formatPrice } from '../utils/formatters.js';
 
 function SpecItem({ label, value }) {
   return (
@@ -15,11 +16,73 @@ function SpecItem({ label, value }) {
   );
 }
 
+function getCarImages(car) {
+  if (Array.isArray(car.imageUrls) && car.imageUrls.length > 0) {
+    return car.imageUrls.slice(0, 6);
+  }
+
+  if (car.imageUrl) {
+    return [car.imageUrl];
+  }
+
+  return [];
+}
+
+function CarDetailImage({ car }) {
+  const [hasImageError, setHasImageError] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const images = getCarImages(car);
+  const selectedImage = images[selectedIndex] || images[0];
+
+  if (!selectedImage || hasImageError) {
+    return <CarImagePlaceholder company={car.company} name={car.name} large />;
+  }
+
+  return (
+    <div>
+      <div className="relative flex aspect-[4/3] max-h-[520px] min-h-[420px] items-center justify-center overflow-hidden rounded-lg bg-slate-50">
+        <img
+          src={selectedImage}
+          alt={car.name || '차량 이미지'}
+          className="h-full w-full object-contain object-center"
+          onError={() => {
+            setHasImageError(true);
+          }}
+        />
+      </div>
+
+      {images.length > 1 ? (
+        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {images.map((imageUrl, index) => (
+            <button
+              key={imageUrl}
+              type="button"
+              className={`aspect-[4/3] overflow-hidden rounded-lg border bg-white transition ${
+                selectedIndex === index ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-slate-300'
+              }`}
+              onClick={() => {
+                setSelectedIndex(index);
+                setHasImageError(false);
+              }}
+            >
+              <img src={imageUrl} alt={`${car.name || '차량 이미지'} ${index + 1}`} className="h-full w-full object-contain object-center" />
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function CarDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { currentUser, profile } = useAuth();
   const [car, setCar] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState('');
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     async function fetchCar() {
@@ -68,6 +131,28 @@ function CarDetailPage() {
   }
 
   const shortId = car._id ? car._id.slice(-6).toUpperCase() : '-';
+  const canManageCar = profile?.role === 'dealer' && currentUser?.uid && car.dealerId === currentUser.uid;
+
+  async function handleDelete() {
+    if (!window.confirm('정말 이 차량을 삭제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      setActionError('');
+      await api.delete(`/api/cars/${car._id}`, {
+        params: {
+          uid: currentUser.uid,
+        },
+      });
+      navigate('/');
+    } catch (deleteError) {
+      setActionError(deleteError.response?.data?.message || '차량 삭제에 실패했습니다.');
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-950">
@@ -84,7 +169,7 @@ function CarDetailPage() {
 
         <section className="mt-5 grid gap-7 lg:grid-cols-[minmax(0,1.35fr)_420px] lg:items-start">
           <div className="min-w-0">
-            <CarImagePlaceholder company={car.company} name={car.name} large />
+            <CarDetailImage car={car} />
 
             <section className="mt-6 rounded-lg border border-slate-200 bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
               <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
@@ -99,7 +184,7 @@ function CarDetailPage() {
                 <SpecItem label="제조사" value={car.company} />
                 <SpecItem label="연식" value={car.year ? `${car.year}년식` : '-'} />
                 <SpecItem label="차종" value={car.type} />
-                <SpecItem label="연료" value={car.fuel} />
+                <SpecItem label="연료" value={formatFuel(car.fuel)} />
                 <SpecItem label="주행거리" value={formatDistance(car.mileage)} />
                 <SpecItem label="지역" value={car.location || '지역 미정'} />
                 <SpecItem label="딜러" value={car.dealerName || '담당 딜러 배정 예정'} />
@@ -143,6 +228,28 @@ function CarDetailPage() {
                   실시간 상담 기능은 준비 중입니다. 지금은 매물 정보를 확인하는 CTA로만 제공됩니다.
                 </p>
               </div>
+
+              {canManageCar ? (
+                <>
+                  <div className="mt-5 grid grid-cols-2 gap-2">
+                    <Link
+                      to={`/cars/${car._id}/edit`}
+                      className="inline-flex h-11 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-sm font-black text-blue-700 transition hover:bg-blue-100"
+                    >
+                      수정
+                    </Link>
+                    <button
+                      type="button"
+                      className="inline-flex h-11 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-sm font-black text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? '삭제 중...' : '삭제'}
+                    </button>
+                  </div>
+                  {actionError ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-600">{actionError}</p> : null}
+                </>
+              ) : null}
 
               <button
                 type="button"

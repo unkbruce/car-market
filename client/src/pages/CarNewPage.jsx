@@ -5,7 +5,7 @@ import Header from '../components/Header.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
-const INITIAL_FORM = {
+export const INITIAL_CAR_FORM = {
   name: '',
   company: '',
   price: '',
@@ -18,18 +18,18 @@ const INITIAL_FORM = {
   transmission: '',
 };
 
-const controlClass =
+export const controlClass =
   'h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10';
-const inputClass = `${controlClass} text-slate-900`;
-const textareaClass =
+export const inputClass = `${controlClass} text-slate-900`;
+export const textareaClass =
   'min-h-32 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10';
 
-const selectPlaceholder = (
+export const selectPlaceholder = (
   <option className="text-slate-400" value="">
     선택해주세요
   </option>
 );
-const COMPANY_OPTIONS = [
+export const COMPANY_OPTIONS = [
   { label: 'HYUNDAI', value: '현대' },
   { label: 'KIA', value: '기아' },
   { label: 'GENESIS', value: '제네시스' },
@@ -40,8 +40,8 @@ const COMPANY_OPTIONS = [
   { label: 'KG MOBILITY', value: 'KG' },
   { label: '기타', value: '기타' },
 ];
-const TYPE_OPTIONS = ['경차', '소형차', '준중형차', '중형차', '대형차', '스포츠카', 'SUV', 'RV'];
-const FUEL_OPTIONS = [
+export const TYPE_OPTIONS = ['경차', '소형차', '준중형차', '중형차', '대형차', '스포츠카', 'SUV', 'RV'];
+export const FUEL_OPTIONS = [
   { label: '가솔린', value: 'gasoline' },
   { label: '디젤', value: 'diesel' },
   { label: 'LPG', value: 'LPG' },
@@ -49,19 +49,20 @@ const FUEL_OPTIONS = [
   { label: '전기', value: 'electric' },
   { label: '기타', value: '기타' },
 ];
-const LOCATION_OPTIONS = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '기타'];
-const TRANSMISSION_OPTIONS = [
+export const LOCATION_OPTIONS = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '기타'];
+export const TRANSMISSION_OPTIONS = [
   { label: '오토', value: 'auto' },
   { label: '수동', value: 'manual' },
   { label: 'CVT', value: 'CVT' },
   { label: '기타', value: '기타' },
 ];
+export const MAX_IMAGE_COUNT = 6;
 
-function getSelectClass(value) {
+export function getSelectClass(value) {
   return `${controlClass} ${value ? 'text-slate-900' : 'text-slate-400'}`;
 }
 
-function Field({ label, children, required = false }) {
+export function Field({ label, children, required = false }) {
   return (
     <label className="grid gap-1.5 text-[13px] font-semibold text-slate-700">
       <span>
@@ -76,7 +77,8 @@ function Field({ label, children, required = false }) {
 function CarNewPage() {
   const navigate = useNavigate();
   const { currentUser, profile, isAuthenticated, isAuthLoading } = useAuth();
-  const [form, setForm] = useState(INITIAL_FORM);
+  const [form, setForm] = useState(INITIAL_CAR_FORM);
+  const [imageFiles, setImageFiles] = useState([]);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -89,6 +91,20 @@ function CarNewPage() {
     }));
   }
 
+  function handleImageChange(event) {
+    const selectedFiles = Array.from(event.target.files || []);
+
+    if (selectedFiles.length > MAX_IMAGE_COUNT) {
+      setError(`이미지는 최대 ${MAX_IMAGE_COUNT}장까지 선택할 수 있습니다.`);
+      event.target.value = '';
+      setImageFiles([]);
+      return;
+    }
+
+    setError('');
+    setImageFiles(selectedFiles);
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -96,11 +112,20 @@ function CarNewPage() {
       setIsSubmitting(true);
       setError('');
 
-      const response = await api.post('/api/cars', {
-        ...form,
-        dealerId: currentUser.uid,
-        dealerName: profile?.displayName || currentUser.displayName || currentUser.email,
+      const formData = new FormData();
+
+      Object.entries(form).forEach(([key, value]) => {
+        formData.append(key, value);
       });
+
+      formData.append('dealerId', currentUser.uid);
+      formData.append('dealerName', profile?.displayName || currentUser.displayName || currentUser.email);
+
+      imageFiles.forEach((imageFile) => {
+        formData.append('images', imageFile);
+      });
+
+      const response = await api.post('/api/cars', formData);
 
       const createdCar = response.data.data;
       navigate(createdCar?._id ? `/cars/${createdCar._id}` : '/');
@@ -253,6 +278,23 @@ function CarNewPage() {
                 onChange={handleChange}
                 placeholder="차량 상태, 정비 이력, 특이사항을 입력해주세요."
               />
+            </Field>
+          </div>
+
+          <div className="mt-4">
+            <Field label="차량 사진">
+              <input
+                className="block w-full cursor-pointer rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 outline-none transition file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white hover:bg-slate-100 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10"
+                name="images"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
+              />
+              <span className="text-xs font-medium text-slate-500">
+                JPG, PNG 등 이미지 파일을 최대 {MAX_IMAGE_COUNT}장까지 선택할 수 있습니다.
+                {imageFiles.length > 0 ? ` 현재 ${imageFiles.length}장 선택됨.` : ''}
+              </span>
             </Field>
           </div>
 

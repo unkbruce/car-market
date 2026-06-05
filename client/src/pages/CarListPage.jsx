@@ -465,7 +465,7 @@ function CarListPage() {
             ) : null}
 
             {!error && cars.length > 0 ? (
-              <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]">
+              <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
                 {cars.map((car) => (
                   <CarCard key={car._id} car={car} />
                 ))}

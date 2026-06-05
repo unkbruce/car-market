@@ -69,6 +69,32 @@ function buildCarDocument(payload, timestamp) {
   };
 }
 
+function getUploadedImageUrls(req) {
+  if (!Array.isArray(req.files) || req.files.length === 0) {
+    return [];
+  }
+
+  return req.files.map((file) => `${req.protocol}://${req.get('host')}/uploads/${file.filename}`);
+}
+
+function normalizeImageFields(payload) {
+  const normalized = { ...payload };
+
+  if (Array.isArray(normalized.imageUrls) && normalized.imageUrls.length > 0 && !normalized.imageUrl) {
+    normalized.imageUrl = normalized.imageUrls[0];
+  }
+
+  return normalized;
+}
+
+function getRequestUid(req) {
+  return req.body?.uid?.trim() || req.query?.uid?.trim() || '';
+}
+
+function isOwnedByDealer(car, uid) {
+  return Boolean(uid && car?.dealerId && car.dealerId === uid);
+}
+
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -269,6 +295,7 @@ export async function getCarById(req, res) {
 export async function createCar(req, res) {
   try {
     const now = new Date();
+    const uploadedImageUrls = getUploadedImageUrls(req);
 
     if (Array.isArray(req.body)) {
       if (req.body.length === 0) {
@@ -298,7 +325,15 @@ export async function createCar(req, res) {
       });
     }
 
-    const carData = normalizeCarPayload(req.body);
+    const carData = normalizeCarPayload(normalizeImageFields({
+      ...req.body,
+      ...(uploadedImageUrls.length > 0
+        ? {
+            imageUrls: uploadedImageUrls,
+            imageUrl: uploadedImageUrls[0],
+          }
+        : {}),
+    }));
     validateCarPayload(carData);
 
     const newCar = buildCarDocument(carData, now);
@@ -320,12 +355,46 @@ export async function createCar(req, res) {
 export async function updateCar(req, res) {
   try {
     const { id } = req.params;
+    const uid = getRequestUid(req);
 
     if (!isValidObjectId(id)) {
       return sendError(res, 400, 'Invalid car id.');
     }
 
-    const carData = normalizeCarPayload(req.body);
+    if (!uid) {
+      return sendError(res, 400, 'uid is required.');
+    }
+
+    const existingCar = await getCarsCollection().findOne({ _id: new ObjectId(id) });
+
+    if (!existingCar) {
+      return sendError(res, 404, 'Car not found.');
+    }
+
+    if (!isOwnedByDealer(existingCar, uid)) {
+      return sendError(res, 403, 'You can only update your own car.');
+    }
+
+    const uploadedImageUrls = getUploadedImageUrls(req);
+    const shouldReplaceImages = req.body.replaceImages === 'true';
+    const currentImageUrls = Array.isArray(existingCar.imageUrls)
+      ? existingCar.imageUrls
+      : existingCar.imageUrl
+        ? [existingCar.imageUrl]
+        : [];
+    const nextImageUrls = uploadedImageUrls.length > 0
+      ? (shouldReplaceImages ? uploadedImageUrls : [...currentImageUrls, ...uploadedImageUrls].slice(0, 6))
+      : currentImageUrls;
+
+    const carData = normalizeCarPayload(normalizeImageFields({
+      ...req.body,
+      ...(nextImageUrls.length > 0
+        ? {
+            imageUrls: nextImageUrls,
+            imageUrl: nextImageUrls[0],
+          }
+        : {}),
+    }));
 
     if (hasInvalidNumericFields(carData)) {
       return sendError(res, 400, 'price, year, and mileage must be numbers.');
@@ -338,6 +407,10 @@ export async function updateCar(req, res) {
 
     delete updateData._id;
     delete updateData.createdAt;
+    delete updateData.uid;
+    delete updateData.replaceImages;
+    delete updateData.dealerId;
+    delete updateData.dealerName;
 
     const result = await getCarsCollection().findOneAndUpdate(
       { _id: new ObjectId(id) },
@@ -361,9 +434,24 @@ export async function updateCar(req, res) {
 export async function deleteCar(req, res) {
   try {
     const { id } = req.params;
+    const uid = getRequestUid(req);
 
     if (!isValidObjectId(id)) {
       return sendError(res, 400, 'Invalid car id.');
+    }
+
+    if (!uid) {
+      return sendError(res, 400, 'uid is required.');
+    }
+
+    const existingCar = await getCarsCollection().findOne({ _id: new ObjectId(id) });
+
+    if (!existingCar) {
+      return sendError(res, 404, 'Car not found.');
+    }
+
+    if (!isOwnedByDealer(existingCar, uid)) {
+      return sendError(res, 403, 'You can only delete your own car.');
     }
 
     const result = await getCarsCollection().deleteOne({ _id: new ObjectId(id) });
