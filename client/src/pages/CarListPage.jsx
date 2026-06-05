@@ -7,7 +7,7 @@ import StatusMessage from '../components/StatusMessage.jsx';
 function Field({ label, children }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-slate-900">{label}</label>
+      <label className="mb-0.5 block text-[12px] font-medium text-slate-700">{label}</label>
       {children}
     </div>
   );
@@ -67,7 +67,7 @@ function CarListPage() {
         <div className="grid gap-5 lg:grid-cols-[250px_minmax(0,1fr)]">
           <aside className="lg:sticky lg:top-20 lg:self-start">
             <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-[0_2px_10px_rgba(15,23,42,0.06)]">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <div className="flex items-center justify-between border-b border-slate-200/70 pb-2.5">
                 <div>
                   <h2 className="text-base font-bold tracking-tight text-slate-950">필터</h2>
                   <p className="mt-0.5 text-[11px] text-slate-500">검색 조건</p>
@@ -81,7 +81,7 @@ function CarListPage() {
                 </button>
               </div>
 
-              <div className="mt-2.5 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+              <div className="mt-3 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-1">
                 <Field label="제조사">
                   <select className={inputClass} defaultValue="">
                     <option value="">전체</option>
@@ -92,11 +92,11 @@ function CarListPage() {
                   </select>
                 </Field>
 
-                <Field label="최저 가격 (만원)">
+                <Field label="최저 가격">
                   <input className={inputClass} placeholder="예: 1000" type="text" />
                 </Field>
 
-                <Field label="최고 가격 (만원)">
+                <Field label="최고 가격">
                   <input className={inputClass} placeholder="예: 3000" type="text" />
                 </Field>
 

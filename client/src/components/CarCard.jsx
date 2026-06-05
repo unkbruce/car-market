@@ -18,7 +18,7 @@ function CarCardImage({ imageUrl, name }) {
   const shouldShowPlaceholder = !imageUrl || hasImageError;
 
   return (
-    <div className="relative h-[108px] overflow-hidden rounded-t-xl bg-slate-100 lg:h-[114px]">
+    <div className="relative h-[100px] overflow-hidden rounded-t-xl bg-slate-100 lg:h-[106px]">
       {shouldShowPlaceholder ? (
         <img src={PLACEHOLDER_IMAGE} alt="차량 placeholder" className={imageClass} />
       ) : (
@@ -42,7 +42,7 @@ function CarCard({ car }) {
     <article className="group flex h-full min-w-0 max-w-[360px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.11)]">
       <CarCardImage imageUrl={imageUrl} name={car.name} />
 
-      <div className="flex flex-1 flex-col p-3">
+      <div className="flex flex-1 flex-col p-2.5">
         <div>
           <h3 className="line-clamp-2 min-h-[2.1rem] text-[14px] font-bold leading-snug tracking-tight text-slate-950">
             {car.name || '이름 없는 차량'}
@@ -53,12 +53,12 @@ function CarCard({ car }) {
           <p className="mt-0.5 text-[12px] leading-tight text-slate-500">
             {car.fuel || '연료 미정'} · {car.location || '지역 미정'}
           </p>
-          <p className="mt-2 text-[18px] font-extrabold leading-none tracking-tight text-slate-950">
+          <p className="mt-1.5 text-[18px] font-extrabold leading-none tracking-tight text-slate-950">
             {formatPrice(car.price)}
           </p>
         </div>
 
-        <div className="mt-auto grid grid-cols-2 gap-1.5 pt-2.5">
+        <div className="mt-auto grid grid-cols-2 gap-1.5 pt-2">
           <Link
             to={`/cars/${car._id}`}
             className="inline-flex h-[30px] items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-2 text-[11px] font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-slate-100"
