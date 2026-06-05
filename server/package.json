@@ -10,8 +10,7 @@
   "dependencies": {
     "cors": "latest",
     "dotenv": "latest",
-    "express": "latest"
-  },
-  "devDependencies": {}
+    "express": "latest",
+    "mongodb": "^7.2.0"
+  }
 }
-
