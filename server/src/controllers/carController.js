@@ -4,7 +4,7 @@ import { getDB } from '../config/db.js';
 const CARS_COLLECTION = 'cars';
 const NUMERIC_FIELDS = ['price', 'year', 'mileage'];
 const REQUIRED_FIELDS = ['name', 'company', 'price', 'year'];
-const SEARCH_NUMERIC_FIELDS = ['minPrice', 'maxPrice', 'minYear', 'maxYear'];
+const SEARCH_NUMERIC_FIELDS = ['minPrice', 'maxPrice', 'minYear', 'maxYear', 'minMileage', 'maxMileage'];
 
 function getCarsCollection() {
   return getDB().collection(CARS_COLLECTION);
@@ -95,8 +95,50 @@ function parseSearchNumber(value, fieldName) {
   return parsedValue;
 }
 
+function normalizeSearchValues(value) {
+  if (value === undefined) {
+    return [];
+  }
+
+  const values = Array.isArray(value) ? value : String(value).split(',');
+
+  return values.map((item) => String(item).trim()).filter(Boolean);
+}
+
+function buildTextFilter(value) {
+  const values = normalizeSearchValues(value);
+
+  if (values.length === 0) {
+    return undefined;
+  }
+
+  if (values.length === 1) {
+    return {
+      $regex: escapeRegExp(values[0]),
+      $options: 'i',
+    };
+  }
+
+  return {
+    $in: values.map((item) => new RegExp(escapeRegExp(item), 'i')),
+  };
+}
+
 function buildSearchFilter(query) {
-  const { keyword, company, minPrice, maxPrice, minYear, maxYear } = query;
+  const {
+    keyword,
+    company,
+    type,
+    fuel,
+    location,
+    minPrice,
+    maxPrice,
+    minYear,
+    maxYear,
+    minMileage,
+    maxMileage,
+    transmission,
+  } = query;
   const filter = {};
 
   for (const field of SEARCH_NUMERIC_FIELDS) {
@@ -110,11 +152,20 @@ function buildSearchFilter(query) {
     };
   }
 
-  if (company) {
-    filter.company = {
-      $regex: escapeRegExp(company),
-      $options: 'i',
-    };
+  const textFilters = {
+    company,
+    type,
+    fuel,
+    location,
+    transmission,
+  };
+
+  for (const [field, value] of Object.entries(textFilters)) {
+    const textFilter = buildTextFilter(value);
+
+    if (textFilter) {
+      filter[field] = textFilter;
+    }
   }
 
   const parsedMinPrice = parseSearchNumber(minPrice, 'minPrice');
@@ -144,6 +195,21 @@ function buildSearchFilter(query) {
 
     if (parsedMaxYear !== undefined) {
       filter.year.$lte = parsedMaxYear;
+    }
+  }
+
+  const parsedMinMileage = parseSearchNumber(minMileage, 'minMileage');
+  const parsedMaxMileage = parseSearchNumber(maxMileage, 'maxMileage');
+
+  if (parsedMinMileage !== undefined || parsedMaxMileage !== undefined) {
+    filter.mileage = {};
+
+    if (parsedMinMileage !== undefined) {
+      filter.mileage.$gte = parsedMinMileage;
+    }
+
+    if (parsedMaxMileage !== undefined) {
+      filter.mileage.$lte = parsedMaxMileage;
     }
   }
 
