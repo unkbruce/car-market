@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import CarDetailPage from './pages/CarDetailPage.jsx';
 import CarListPage from './pages/CarListPage.jsx';
+import CarNewPage from './pages/CarNewPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 
@@ -11,6 +12,7 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<CarListPage />} />
+          <Route path="/cars/new" element={<CarNewPage />} />
           <Route path="/cars/:id" element={<CarDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />

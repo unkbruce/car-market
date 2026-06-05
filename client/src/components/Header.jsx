@@ -3,7 +3,8 @@ import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 function Header({ subtitle }) {
-  const { currentUser, isAuthenticated, isAuthLoading, logout } = useAuth();
+  const { currentUser, profile, isAuthenticated, isAuthLoading, logout } = useAuth();
+  const isDealer = profile?.role === 'dealer';
 
   async function handleLogout() {
     await logout();
@@ -33,17 +34,26 @@ function Header({ subtitle }) {
           >
             차량 목록
           </NavLink>
-          <button type="button" className="hidden items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-semibold transition hover:bg-slate-100 hover:text-slate-950 sm:inline-flex">
-            <CirclePlus size={16} />
-            차량 등록
-          </button>
+          {isDealer ? (
+            <NavLink
+              to="/cars/new"
+              className={({ isActive }) =>
+                `hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-bold transition sm:inline-flex ${
+                  isActive ? 'bg-blue-50 text-blue-700' : 'text-blue-700 hover:bg-blue-50'
+                }`
+              }
+            >
+              <CirclePlus size={16} />
+              차량 등록
+            </NavLink>
+          ) : null}
 
           {isAuthLoading ? (
             <span className="hidden h-8 w-20 rounded-lg bg-slate-100 sm:inline-block" aria-label="인증 상태 확인 중" />
           ) : isAuthenticated ? (
             <>
               <span className="hidden max-w-[140px] truncate text-xs font-semibold text-slate-500 md:inline">
-                {currentUser.displayName || currentUser.email}
+                {profile?.displayName || currentUser.displayName || currentUser.email}
               </span>
               <button
                 type="button"
