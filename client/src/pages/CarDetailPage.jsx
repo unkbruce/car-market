@@ -6,13 +6,13 @@ import CarImagePlaceholder from '../components/CarImagePlaceholder.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { canUseChat, createOrGetChatRoom } from '../utils/chat.js';
-import { formatCompany, formatDistance, formatFuel, formatPrice } from '../utils/formatters.js';
+import { formatCompany, formatDistance, formatFuel, formatPrice, formatTransmission } from '../utils/formatters.js';
 
 function SpecItem({ label, value }) {
   return (
-    <div className="border-b border-slate-100 py-3.5">
-      <p className="text-[12px] font-semibold text-slate-400">{label}</p>
-      <p className="mt-1 text-sm font-bold text-slate-900">{value || '-'}</p>
+    <div className="border-b border-slate-100 py-2.5">
+      <p className="text-[11px] font-semibold text-slate-400">{label}</p>
+      <p className="mt-0.5 text-sm font-bold text-slate-900">{value || '-'}</p>
     </div>
   );
 }
@@ -143,6 +143,7 @@ function CarDetailPage() {
 
   const shortId = car._id ? car._id.slice(-6).toUpperCase() : '-';
   const canManageCar = profile?.role === 'dealer' && currentUser?.uid && car.dealerId === currentUser.uid;
+  const detailDescription = car.description || '등록된 상세 설명이 없습니다. 상담하기를 통해 차량 상태와 방문 가능 일정을 확인해보세요.';
 
   async function handleDelete() {
     if (!window.confirm('정말 이 차량을 삭제하시겠습니까?')) {
@@ -216,45 +217,38 @@ function CarDetailPage() {
       <Header subtitle="매물 상세" />
 
       <div className="mx-auto max-w-[1200px] px-4 pb-16 pt-4 sm:px-5 lg:px-6 lg:pt-6">
-        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-          <div className="min-w-0">
+        <section className="grid gap-x-5 gap-y-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+          <div className="order-1 min-w-0 lg:col-start-1 lg:row-start-1">
             <CarDetailImage car={car} />
-
-            <section className="mt-5 rounded-xl border border-slate-200 bg-white p-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
-              <div className="border-b border-slate-100 pb-3">
-                <div>
-                  <h2 className="text-lg font-black text-slate-950">주요 스펙</h2>
-                </div>
-              </div>
-
-              <div className="mt-1 grid gap-x-8 md:grid-cols-2">
-                <SpecItem label="제조사" value={formatCompany(car.company)} />
-                <SpecItem label="연식" value={car.year ? `${car.year}년식` : '-'} />
-                <SpecItem label="차종" value={car.type} />
-                <SpecItem label="연료" value={formatFuel(car.fuel)} />
-                <SpecItem label="주행거리" value={formatDistance(car.mileage)} />
-                <SpecItem label="지역" value={car.location || '지역 미정'} />
-                <SpecItem label="딜러" value={car.dealerName || '담당 딜러 배정 예정'} />
-                <SpecItem label="상태" value="상담 가능" />
-              </div>
-            </section>
-
-            <section className="mt-5 rounded-xl border border-slate-200 bg-white p-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
-              <h2 className="text-lg font-black text-slate-950">상세 설명</h2>
-              <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600">
-                {car.description || '등록된 상세 설명이 없습니다. 상담하기를 통해 차량 상태와 방문 가능 일정을 확인해보세요.'}
-              </p>
-            </section>
           </div>
 
-          <aside className="lg:sticky lg:top-20">
+          <section className="order-3 rounded-xl border border-slate-200 bg-white p-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)] lg:col-start-1 lg:row-start-2">
+            <div className="border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-lg font-black text-slate-950">주요 스펙</h2>
+              </div>
+            </div>
+
+            <div className="mt-2 grid grid-cols-1 gap-x-5 sm:grid-cols-2 xl:grid-cols-4">
+              <SpecItem label="제조사" value={formatCompany(car.company)} />
+              <SpecItem label="연식" value={car.year ? `${car.year}년식` : '-'} />
+              <SpecItem label="차종" value={car.type} />
+              <SpecItem label="연료" value={formatFuel(car.fuel)} />
+              <SpecItem label="변속기" value={formatTransmission(car.transmission)} />
+              <SpecItem label="주행거리" value={formatDistance(car.mileage)} />
+              <SpecItem label="지역" value={car.location || '지역 미정'} />
+              <SpecItem label="색상" value={car.color} />
+            </div>
+          </section>
+
+          <aside className="order-2 lg:sticky lg:top-20 lg:col-start-2 lg:row-span-3 lg:row-start-1">
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-blue-700">{formatCompany(car.company)}</p>
                   <h1 className="mt-2 line-clamp-2 text-lg font-black leading-tight tracking-tight text-slate-950">{car.name}</h1>
                 </div>
-                <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">상담 가능</span>
+                {!canManageCar ? <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">상담 가능</span> : null}
               </div>
 
               <div className="mt-5 border-y border-slate-100 py-4">
@@ -269,16 +263,18 @@ function CarDetailPage() {
 
               <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50 p-4">
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-sm font-semibold text-slate-500">담당 딜러</span>
+                  <span className="text-sm font-semibold text-slate-500">{canManageCar ? '등록 딜러' : '담당 딜러'}</span>
                   <span className="text-sm font-black text-slate-950">{car.dealerName || '배정 예정'}</span>
                 </div>
-                <div className="mt-3 flex items-center justify-between gap-4 border-t border-slate-200/70 pt-3">
-                  <span className="text-sm font-semibold text-slate-500">상담 상태</span>
-                  <span className="inline-flex items-center gap-1.5 text-sm font-black text-blue-700">
-                    <span className="h-2 w-2 rounded-full bg-blue-600" />
-                    실시간 상담 가능
-                  </span>
-                </div>
+                {!canManageCar ? (
+                  <div className="mt-3 flex items-center justify-between gap-4 border-t border-slate-200/70 pt-3">
+                    <span className="text-sm font-semibold text-slate-500">상담 상태</span>
+                    <span className="inline-flex items-center gap-1.5 text-sm font-black text-blue-700">
+                      <span className="h-2 w-2 rounded-full bg-blue-600" />
+                      실시간 상담 가능
+                    </span>
+                  </div>
+                ) : null}
               </div>
 
               {canManageCar ? (
@@ -303,15 +299,19 @@ function CarDetailPage() {
                 </>
               ) : null}
 
-              <button
-                type="button"
-                className="mt-5 w-full rounded-lg bg-blue-600 px-6 py-4 text-base font-black text-white shadow-[0_4px_10px_rgba(37,99,235,0.18)] transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={handleStartChat}
-                disabled={isChatStarting || (Boolean(currentUser) && isAuthLoading)}
-              >
-                {isChatStarting ? '상담방 여는 중...' : Boolean(currentUser) && isAuthLoading ? '사용자 확인 중...' : '상담하기'}
-              </button>
-              {actionError && !canManageCar ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-600">{actionError}</p> : null}
+              {!canManageCar ? (
+                <>
+                  <button
+                    type="button"
+                    className="mt-5 w-full rounded-lg bg-blue-600 px-6 py-4 text-base font-black text-white shadow-[0_4px_10px_rgba(37,99,235,0.18)] transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={handleStartChat}
+                    disabled={isChatStarting || (Boolean(currentUser) && isAuthLoading)}
+                  >
+                    {isChatStarting ? '상담방 여는 중...' : Boolean(currentUser) && isAuthLoading ? '사용자 확인 중...' : '상담하기'}
+                  </button>
+                  {actionError ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-600">{actionError}</p> : null}
+                </>
+              ) : null}
 
               <Link
                 to="/"
@@ -321,6 +321,19 @@ function CarDetailPage() {
               </Link>
             </div>
           </aside>
+
+          <section className="order-4 rounded-xl border border-slate-200 bg-white p-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)] lg:col-start-1 lg:row-start-3">
+            <div className="border-b border-slate-100 pb-3">
+              <h2 className="text-lg font-black text-slate-950">상세 설명</h2>
+            </div>
+            <div className="mt-4 space-y-3 text-[15px] leading-[1.75] text-slate-600">
+              {detailDescription.split(/\n\s*\n/).map((paragraph, index) => (
+                <p className="whitespace-pre-line break-words [overflow-wrap:anywhere]" key={`${paragraph}-${index}`}>
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          </section>
         </section>
       </div>
     </main>

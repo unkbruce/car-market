@@ -1,4 +1,4 @@
-import { COMPANY_OPTIONS, FUEL_OPTIONS, getOptionLabel } from './carOptions.js';
+import { COMPANY_OPTIONS, FUEL_OPTIONS, TRANSMISSION_OPTIONS, getOptionLabel } from './carOptions.js';
 
 export function formatPrice(price) {
   const numericPrice = Number(price);
@@ -34,4 +34,12 @@ export function formatCompany(company) {
   }
 
   return getOptionLabel(COMPANY_OPTIONS, company);
+}
+
+export function formatTransmission(transmission) {
+  if (!transmission) {
+    return '변속기 미정';
+  }
+
+  return getOptionLabel(TRANSMISSION_OPTIONS, transmission);
 }

@@ -30,6 +30,7 @@ function buildFormFromCar(car) {
     fuel: getCanonicalOptionValue(FUEL_OPTIONS, toFormValue(car.fuel)),
     mileage: toFormValue(car.mileage),
     location: toFormValue(car.location),
+    color: toFormValue(car.color),
     description: toFormValue(car.description),
     transmission: getCanonicalOptionValue(TRANSMISSION_OPTIONS, toFormValue(car.transmission)),
   };
@@ -331,6 +332,10 @@ function CarEditPage() {
                 {selectPlaceholder}
                 <SelectOptions options={TRANSMISSION_OPTIONS} />
               </select>
+            </Field>
+
+            <Field label="외장 색상">
+              <input className={inputClass} name="color" value={form.color} onChange={handleChange} placeholder="예: 스노우 화이트 펄" />
             </Field>
           </div>
 
