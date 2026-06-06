@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 import { PLACEHOLDER_IMAGE } from './CarImagePlaceholder.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -47,6 +47,18 @@ function CarCard({ car }) {
   const imageUrl = getCarImage(car);
   const [isChatStarting, setIsChatStarting] = useState(false);
   const [chatError, setChatError] = useState('');
+  const detailPath = `/cars/${car._id}`;
+
+  function goToDetail() {
+    navigate(detailPath);
+  }
+
+  function handleCardKeyDown(event) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      goToDetail();
+    }
+  }
 
   async function handleStartChat(event) {
     event.preventDefault();
@@ -94,7 +106,13 @@ function CarCard({ car }) {
   }
 
   return (
-    <article className="group flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.11)]">
+    <article
+      className="group flex h-full min-w-0 cursor-pointer flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_10px_22px_rgba(15,23,42,0.11)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+      role="link"
+      tabIndex={0}
+      onClick={goToDetail}
+      onKeyDown={handleCardKeyDown}
+    >
       <CarCardImage imageUrl={imageUrl} name={car.name} />
 
       <div className="flex flex-1 flex-col p-2.5">
@@ -116,16 +134,10 @@ function CarCard({ car }) {
           </p>
         </div>
 
-        <div className="mt-auto grid grid-cols-2 gap-1.5 pt-2">
-          <Link
-            to={`/cars/${car._id}`}
-            className="inline-flex h-[30px] items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-2 text-[11px] font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-slate-100"
-          >
-            상세 보기
-          </Link>
+        <div className="mt-auto pt-2">
           <button
             type="button"
-            className="inline-flex h-[30px] items-center justify-center gap-1 rounded-lg bg-blue-600 px-2 text-[11px] font-semibold text-white shadow-[0_4px_10px_rgba(37,99,235,0.18)] transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-[30px] w-full items-center justify-center gap-1 rounded-lg bg-blue-600 px-2 text-[11px] font-semibold text-white shadow-[0_4px_10px_rgba(37,99,235,0.18)] transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             onClick={handleStartChat}
             disabled={isChatStarting || (Boolean(currentUser) && isAuthLoading)}
           >

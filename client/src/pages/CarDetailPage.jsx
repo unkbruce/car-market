@@ -248,7 +248,6 @@ function CarDetailPage() {
                   <p className="text-xs font-bold text-blue-700">{formatCompany(car.company)}</p>
                   <h1 className="mt-2 line-clamp-2 text-lg font-black leading-tight tracking-tight text-slate-950">{car.name}</h1>
                 </div>
-                {!canManageCar ? <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">상담 가능</span> : null}
               </div>
 
               <div className="mt-5 border-y border-slate-100 py-4">
@@ -266,15 +265,6 @@ function CarDetailPage() {
                   <span className="text-sm font-semibold text-slate-500">{canManageCar ? '등록 딜러' : '담당 딜러'}</span>
                   <span className="text-sm font-black text-slate-950">{car.dealerName || '배정 예정'}</span>
                 </div>
-                {!canManageCar ? (
-                  <div className="mt-3 flex items-center justify-between gap-4 border-t border-slate-200/70 pt-3">
-                    <span className="text-sm font-semibold text-slate-500">상담 상태</span>
-                    <span className="inline-flex items-center gap-1.5 text-sm font-black text-blue-700">
-                      <span className="h-2 w-2 rounded-full bg-blue-600" />
-                      실시간 상담 가능
-                    </span>
-                  </div>
-                ) : null}
               </div>
 
               {canManageCar ? (
