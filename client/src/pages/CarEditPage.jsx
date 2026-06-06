@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import api from '../api/api.js';
 import Header from '../components/Header.jsx';
@@ -38,6 +38,18 @@ function buildFormFromCar(car) {
   };
 }
 
+function getCarImageUrls(car) {
+  if (Array.isArray(car.imageUrls) && car.imageUrls.length > 0) {
+    return car.imageUrls.slice(0, MAX_IMAGE_COUNT);
+  }
+
+  if (car.imageUrl) {
+    return [car.imageUrl];
+  }
+
+  return [];
+}
+
 function SelectOptions({ options }) {
   return options.map((option) => {
     const item = typeof option === 'string' ? { label: option, value: option } : option;
@@ -56,11 +68,25 @@ function CarEditPage() {
   const { currentUser, profile, isAuthenticated, isAuthLoading } = useAuth();
   const [car, setCar] = useState(null);
   const [form, setForm] = useState(INITIAL_CAR_FORM);
-  const [imageFiles, setImageFiles] = useState([]);
-  const [replaceImages, setReplaceImages] = useState(false);
+  const [existingImages, setExistingImages] = useState([]);
+  const [newImages, setNewImages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const imageInputRef = useRef(null);
+  const newImagesRef = useRef([]);
+
+  useEffect(() => {
+    newImagesRef.current = newImages;
+  }, [newImages]);
+
+  useEffect(() => {
+    return () => {
+      newImagesRef.current.forEach((image) => {
+        URL.revokeObjectURL(image.previewUrl);
+      });
+    };
+  }, []);
 
   useEffect(() => {
     async function fetchCar() {
@@ -73,6 +99,10 @@ function CarEditPage() {
 
         setCar(carData);
         setForm(buildFormFromCar(carData));
+        setExistingImages(getCarImageUrls(carData).map((imageUrl, index) => ({
+          id: `${imageUrl}-${index}`,
+          imageUrl,
+        })));
       } catch (fetchError) {
         setError(fetchError.response?.data?.message || '차량 정보를 불러오지 못했습니다.');
       } finally {
@@ -94,16 +124,58 @@ function CarEditPage() {
 
   function handleImageChange(event) {
     const selectedFiles = Array.from(event.target.files || []);
+    const remainingSlots = MAX_IMAGE_COUNT - existingImages.length - newImages.length;
+    const existingNewImageIds = new Set(newImages.map((image) => image.id));
+    const nextImages = [];
+    let hasDuplicate = false;
 
-    if (selectedFiles.length > MAX_IMAGE_COUNT) {
+    for (const file of selectedFiles) {
+      const imageId = `${file.name}-${file.size}-${file.lastModified}`;
+
+      if (existingNewImageIds.has(imageId) || nextImages.some((image) => image.id === imageId)) {
+        hasDuplicate = true;
+        continue;
+      }
+
+      nextImages.push({
+        id: imageId,
+        file,
+        previewUrl: URL.createObjectURL(file),
+      });
+    }
+
+    if (nextImages.length > remainingSlots) {
+      nextImages.forEach((image) => {
+        URL.revokeObjectURL(image.previewUrl);
+      });
       setError(`이미지는 최대 ${MAX_IMAGE_COUNT}장까지 선택할 수 있습니다.`);
       event.target.value = '';
-      setImageFiles([]);
       return;
     }
 
-    setError('');
-    setImageFiles(selectedFiles);
+    setError(hasDuplicate ? '이미 선택한 파일은 제외했습니다.' : '');
+    setNewImages((currentImages) => [...currentImages, ...nextImages]);
+    event.target.value = '';
+  }
+
+  function handleRemoveExistingImage(imageId) {
+    setExistingImages((currentImages) => currentImages.filter((image) => image.id !== imageId));
+  }
+
+  function handleRemoveNewImage(imageId) {
+    setNewImages((currentImages) => {
+      const removedImage = currentImages.find((image) => image.id === imageId);
+
+      if (removedImage) {
+        URL.revokeObjectURL(removedImage.previewUrl);
+      }
+
+      return currentImages.filter((image) => image.id !== imageId);
+    });
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
   }
 
   async function handleSubmit(event) {
@@ -120,10 +192,10 @@ function CarEditPage() {
       });
 
       formData.append('uid', currentUser.uid);
-      formData.append('replaceImages', replaceImages ? 'true' : 'false');
+      formData.append('keepImageUrls', JSON.stringify(existingImages.map((image) => image.imageUrl)));
 
-      imageFiles.forEach((imageFile) => {
-        formData.append('images', imageFile);
+      newImages.forEach((image) => {
+        formData.append('images', image.file);
       });
 
       const response = await api.put(`/api/cars/${id}`, formData);
@@ -189,7 +261,7 @@ function CarEditPage() {
     );
   }
 
-  const currentImageCount = Array.isArray(car.imageUrls) ? car.imageUrls.length : car.imageUrl ? 1 : 0;
+  const selectedImageCount = existingImages.length + newImages.length;
 
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-950">
@@ -269,23 +341,53 @@ function CarEditPage() {
                 type="file"
                 accept="image/*"
                 multiple
+                ref={imageInputRef}
                 onChange={handleImageChange}
               />
               <span className="text-xs font-medium text-slate-500">
-                현재 이미지 {currentImageCount}장. 새 이미지는 최대 {MAX_IMAGE_COUNT}장까지 선택할 수 있습니다.
-                {imageFiles.length > 0 ? ` 새 이미지 ${imageFiles.length}장 선택됨.` : ''}
+                기존 이미지와 새 이미지를 합쳐 최대 {MAX_IMAGE_COUNT}장까지 관리할 수 있습니다. 현재 {selectedImageCount}장 선택됨.
               </span>
             </Field>
-            <label className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-slate-600">
-              <input
-                type="checkbox"
-                checked={replaceImages}
-                onChange={(event) => {
-                  setReplaceImages(event.target.checked);
-                }}
-              />
-              기존 이미지를 새 이미지로 교체
-            </label>
+            {selectedImageCount > 0 ? (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {existingImages.map((image, index) => (
+                  <div key={image.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <div className="aspect-[4/3] bg-slate-50">
+                      <img src={image.imageUrl} alt={`기존 이미지 ${index + 1}`} className="h-full w-full object-contain object-center" />
+                    </div>
+                    <div className="flex items-center gap-2 px-2.5 py-2">
+                      <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-600">기존 이미지 {index + 1}</span>
+                      <button
+                        type="button"
+                        className="shrink-0 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50"
+                        onClick={() => handleRemoveExistingImage(image.id)}
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {newImages.map((image) => (
+                  <div key={image.id} className="overflow-hidden rounded-lg border border-blue-100 bg-white">
+                    <div className="aspect-[4/3] bg-slate-50">
+                      <img src={image.previewUrl} alt={image.file.name} className="h-full w-full object-contain object-center" />
+                    </div>
+                    <div className="flex items-center gap-2 px-2.5 py-2">
+                      <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-600">{image.file.name}</span>
+                      <button
+                        type="button"
+                        className="shrink-0 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50"
+                        onClick={() => handleRemoveNewImage(image.id)}
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">남은 이미지가 없으면 목록과 상세 화면에서 기본 placeholder가 표시됩니다.</p>
+            )}
           </div>
 
           {error ? <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{error}</p> : null}

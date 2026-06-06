@@ -87,6 +87,28 @@ function normalizeImageFields(payload) {
   return normalized;
 }
 
+function parseKeepImageUrls(value, fallbackImageUrls) {
+  if (value === undefined) {
+    return fallbackImageUrls;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((imageUrl) => String(imageUrl).trim()).filter(Boolean);
+  }
+
+  try {
+    const parsedValue = JSON.parse(value);
+
+    if (Array.isArray(parsedValue)) {
+      return parsedValue.map((imageUrl) => String(imageUrl).trim()).filter(Boolean);
+    }
+  } catch {
+    return String(value).split(',').map((imageUrl) => imageUrl.trim()).filter(Boolean);
+  }
+
+  return [];
+}
+
 function getRequestUid(req) {
   return req.body?.uid?.trim() || req.query?.uid?.trim() || '';
 }
@@ -376,24 +398,18 @@ export async function updateCar(req, res) {
     }
 
     const uploadedImageUrls = getUploadedImageUrls(req);
-    const shouldReplaceImages = req.body.replaceImages === 'true';
-    const currentImageUrls = Array.isArray(existingCar.imageUrls)
+    const existingImageUrls = Array.isArray(existingCar.imageUrls)
       ? existingCar.imageUrls
       : existingCar.imageUrl
         ? [existingCar.imageUrl]
         : [];
-    const nextImageUrls = uploadedImageUrls.length > 0
-      ? (shouldReplaceImages ? uploadedImageUrls : [...currentImageUrls, ...uploadedImageUrls].slice(0, 8))
-      : currentImageUrls;
+    const keepImageUrls = parseKeepImageUrls(req.body.keepImageUrls, existingImageUrls);
+    const nextImageUrls = [...keepImageUrls, ...uploadedImageUrls].slice(0, 8);
 
     const carData = normalizeCarPayload(normalizeImageFields({
       ...req.body,
-      ...(nextImageUrls.length > 0
-        ? {
-            imageUrls: nextImageUrls,
-            imageUrl: nextImageUrls[0],
-          }
-        : {}),
+      imageUrls: nextImageUrls,
+      imageUrl: nextImageUrls[0] || '',
     }));
 
     if (hasInvalidNumericFields(carData)) {
@@ -409,6 +425,7 @@ export async function updateCar(req, res) {
     delete updateData.createdAt;
     delete updateData.uid;
     delete updateData.replaceImages;
+    delete updateData.keepImageUrls;
     delete updateData.dealerId;
     delete updateData.dealerName;
 
