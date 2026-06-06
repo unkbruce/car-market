@@ -5,6 +5,7 @@ import Header from '../components/Header.jsx';
 import CarImagePlaceholder from '../components/CarImagePlaceholder.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { canUseChat, createOrGetChatRoom } from '../utils/chat.js';
 import { formatDistance, formatFuel, formatPrice } from '../utils/formatters.js';
 
 function SpecItem({ label, value }) {
@@ -77,10 +78,11 @@ function CarDetailImage({ car }) {
 function CarDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { currentUser, profile } = useAuth();
+  const { currentUser, profile, isAuthLoading } = useAuth();
   const [car, setCar] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isChatStarting, setIsChatStarting] = useState(false);
   const [error, setError] = useState('');
   const [actionError, setActionError] = useState('');
 
@@ -151,6 +153,52 @@ function CarDetailPage() {
       setActionError(deleteError.response?.data?.message || '차량 삭제에 실패했습니다.');
     } finally {
       setIsDeleting(false);
+    }
+  }
+
+  async function handleStartChat() {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    if (isAuthLoading) {
+      setActionError('사용자 정보를 확인하는 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    const hasChatPermission = canUseChat(profile);
+
+    if (!hasChatPermission) {
+      console.warn('Chat permission denied', {
+        uid: currentUser.uid,
+        role: profile?.role,
+      });
+      setActionError('상담은 로그인한 일반 사용자 또는 딜러만 이용할 수 있습니다.');
+      return;
+    }
+
+    if (!car.dealerId) {
+      setActionError('딜러 정보가 없어 상담방을 만들 수 없습니다.');
+      return;
+    }
+
+    if (car.dealerId === currentUser.uid) {
+      setActionError('본인이 등록한 차량은 상담방을 만들 수 없습니다.');
+      return;
+    }
+
+    try {
+      setIsChatStarting(true);
+      setActionError('');
+
+      const room = await createOrGetChatRoom({ car, currentUser, profile });
+
+      navigate(`/chats/${room.roomId}`);
+    } catch (chatError) {
+      setActionError(chatError.response?.data?.message || '상담방을 만들지 못했습니다.');
+    } finally {
+      setIsChatStarting(false);
     }
   }
 
@@ -253,10 +301,13 @@ function CarDetailPage() {
 
               <button
                 type="button"
-                className="mt-5 w-full rounded-lg bg-cyan-600 px-6 py-4 text-base font-black text-white shadow-[0_12px_26px_rgba(8,145,178,0.24)] transition hover:bg-cyan-700"
+                className="mt-5 w-full rounded-lg bg-cyan-600 px-6 py-4 text-base font-black text-white shadow-[0_12px_26px_rgba(8,145,178,0.24)] transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={handleStartChat}
+                disabled={isChatStarting || (Boolean(currentUser) && isAuthLoading)}
               >
-                상담하기
+                {isChatStarting ? '상담방 여는 중...' : Boolean(currentUser) && isAuthLoading ? '사용자 확인 중...' : '상담하기'}
               </button>
+              {actionError && !canManageCar ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-600">{actionError}</p> : null}
 
               <Link
                 to="/"

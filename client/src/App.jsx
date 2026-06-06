@@ -4,6 +4,7 @@ import CarDetailPage from './pages/CarDetailPage.jsx';
 import CarEditPage from './pages/CarEditPage.jsx';
 import CarListPage from './pages/CarListPage.jsx';
 import CarNewPage from './pages/CarNewPage.jsx';
+import ChatPage from './pages/ChatPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 
@@ -16,6 +17,7 @@ function App() {
           <Route path="/cars/new" element={<CarNewPage />} />
           <Route path="/cars/:id/edit" element={<CarEditPage />} />
           <Route path="/cars/:id" element={<CarDetailPage />} />
+          <Route path="/chats/:roomId" element={<ChatPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
         </Routes>

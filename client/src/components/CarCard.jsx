@@ -1,7 +1,9 @@
-import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 import { PLACEHOLDER_IMAGE } from './CarImagePlaceholder.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
+import { canUseChat, createOrGetChatRoom } from '../utils/chat.js';
 import { formatDistance, formatFuel, formatPrice } from '../utils/formatters.js';
 
 function getCarImage(car) {
@@ -40,7 +42,56 @@ function CarCardImage({ imageUrl, name }) {
 }
 
 function CarCard({ car }) {
+  const navigate = useNavigate();
+  const { currentUser, profile, isAuthLoading } = useAuth();
   const imageUrl = getCarImage(car);
+  const [isChatStarting, setIsChatStarting] = useState(false);
+  const [chatError, setChatError] = useState('');
+
+  async function handleStartChat(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!canUseChat(profile)) {
+      console.warn('Chat permission denied', {
+        uid: currentUser.uid,
+        role: profile?.role,
+      });
+      setChatError('상담 권한이 없습니다.');
+      return;
+    }
+
+    if (!car.dealerId) {
+      setChatError('딜러 정보가 없습니다.');
+      return;
+    }
+
+    if (car.dealerId === currentUser.uid) {
+      setChatError('본인 차량은 상담할 수 없습니다.');
+      return;
+    }
+
+    try {
+      setIsChatStarting(true);
+      setChatError('');
+
+      const room = await createOrGetChatRoom({ car, currentUser, profile });
+      navigate(`/chats/${room.roomId}`);
+    } catch (error) {
+      setChatError(error.response?.data?.message || '상담방을 만들지 못했습니다.');
+    } finally {
+      setIsChatStarting(false);
+    }
+  }
 
   return (
     <article className="group flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.11)]">
@@ -71,12 +122,15 @@ function CarCard({ car }) {
           </Link>
           <button
             type="button"
-            className="inline-flex h-[30px] items-center justify-center gap-1 rounded-lg bg-blue-600 px-2 text-[11px] font-semibold text-white shadow-[0_4px_10px_rgba(37,99,235,0.18)] transition hover:bg-blue-700"
+            className="inline-flex h-[30px] items-center justify-center gap-1 rounded-lg bg-blue-600 px-2 text-[11px] font-semibold text-white shadow-[0_4px_10px_rgba(37,99,235,0.18)] transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={handleStartChat}
+            disabled={isChatStarting || (Boolean(currentUser) && isAuthLoading)}
           >
             <MessageCircle size={12} />
-            상담하기
+            {isChatStarting ? '연결 중' : '상담하기'}
           </button>
         </div>
+        {chatError ? <p className="mt-1.5 truncate text-[11px] font-semibold text-red-500">{chatError}</p> : null}
       </div>
     </article>
   );
