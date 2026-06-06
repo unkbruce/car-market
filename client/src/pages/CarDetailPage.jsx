@@ -18,7 +18,7 @@ function SpecItem({ label, value }) {
 
 function getCarImages(car) {
   if (Array.isArray(car.imageUrls) && car.imageUrls.length > 0) {
-    return car.imageUrls.slice(0, 6);
+    return car.imageUrls.slice(0, 8);
   }
 
   if (car.imageUrl) {

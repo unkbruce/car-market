@@ -14,8 +14,8 @@ const router = Router();
 router.get('/', getCars);
 router.get('/search', searchCars);
 router.get('/:id', getCarById);
-router.post('/', upload.array('images', 6), createCar);
-router.put('/:id', upload.array('images', 6), updateCar);
+router.post('/', upload.array('images', 8), createCar);
+router.put('/:id', upload.array('images', 8), updateCar);
 router.delete('/:id', deleteCar);
 
 export default router;

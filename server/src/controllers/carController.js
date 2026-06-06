@@ -383,7 +383,7 @@ export async function updateCar(req, res) {
         ? [existingCar.imageUrl]
         : [];
     const nextImageUrls = uploadedImageUrls.length > 0
-      ? (shouldReplaceImages ? uploadedImageUrls : [...currentImageUrls, ...uploadedImageUrls].slice(0, 6))
+      ? (shouldReplaceImages ? uploadedImageUrls : [...currentImageUrls, ...uploadedImageUrls].slice(0, 8))
       : currentImageUrls;
 
     const carData = normalizeCarPayload(normalizeImageFields({

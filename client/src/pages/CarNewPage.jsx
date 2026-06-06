@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/api.js';
 import Header from '../components/Header.jsx';
@@ -56,7 +56,7 @@ export const TRANSMISSION_OPTIONS = [
   { label: 'CVT', value: 'CVT' },
   { label: '기타', value: '기타' },
 ];
-export const MAX_IMAGE_COUNT = 6;
+export const MAX_IMAGE_COUNT = 8;
 
 export function getSelectClass(value) {
   return `${controlClass} ${value ? 'text-slate-900' : 'text-slate-400'}`;
@@ -78,9 +78,23 @@ function CarNewPage() {
   const navigate = useNavigate();
   const { currentUser, profile, isAuthenticated, isAuthLoading } = useAuth();
   const [form, setForm] = useState(INITIAL_CAR_FORM);
-  const [imageFiles, setImageFiles] = useState([]);
+  const [selectedImages, setSelectedImages] = useState([]);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const imageInputRef = useRef(null);
+  const selectedImagesRef = useRef([]);
+
+  useEffect(() => {
+    selectedImagesRef.current = selectedImages;
+  }, [selectedImages]);
+
+  useEffect(() => {
+    return () => {
+      selectedImagesRef.current.forEach((image) => {
+        URL.revokeObjectURL(image.previewUrl);
+      });
+    };
+  }, []);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -93,16 +107,53 @@ function CarNewPage() {
 
   function handleImageChange(event) {
     const selectedFiles = Array.from(event.target.files || []);
+    const existingIds = new Set(selectedImages.map((image) => image.id));
+    const nextImages = [];
+    let hasDuplicate = false;
 
-    if (selectedFiles.length > MAX_IMAGE_COUNT) {
+    for (const file of selectedFiles) {
+      const id = `${file.name}-${file.size}-${file.lastModified}`;
+
+      if (existingIds.has(id) || nextImages.some((image) => image.id === id)) {
+        hasDuplicate = true;
+        continue;
+      }
+
+      nextImages.push({
+        id,
+        file,
+        previewUrl: URL.createObjectURL(file),
+      });
+    }
+
+    if (selectedImages.length + nextImages.length > MAX_IMAGE_COUNT) {
+      nextImages.forEach((image) => {
+        URL.revokeObjectURL(image.previewUrl);
+      });
       setError(`이미지는 최대 ${MAX_IMAGE_COUNT}장까지 선택할 수 있습니다.`);
       event.target.value = '';
-      setImageFiles([]);
       return;
     }
 
-    setError('');
-    setImageFiles(selectedFiles);
+    setError(hasDuplicate ? '이미 선택한 파일은 제외했습니다.' : '');
+    setSelectedImages((currentImages) => [...currentImages, ...nextImages]);
+    event.target.value = '';
+  }
+
+  function handleRemoveImage(imageId) {
+    setSelectedImages((currentImages) => {
+      const removedImage = currentImages.find((image) => image.id === imageId);
+
+      if (removedImage) {
+        URL.revokeObjectURL(removedImage.previewUrl);
+      }
+
+      return currentImages.filter((image) => image.id !== imageId);
+    });
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
   }
 
   async function handleSubmit(event) {
@@ -121,8 +172,8 @@ function CarNewPage() {
       formData.append('dealerId', currentUser.uid);
       formData.append('dealerName', profile?.displayName || currentUser.displayName || currentUser.email);
 
-      imageFiles.forEach((imageFile) => {
-        formData.append('images', imageFile);
+      selectedImages.forEach((image) => {
+        formData.append('images', image.file);
       });
 
       const response = await api.post('/api/cars', formData);
@@ -289,13 +340,35 @@ function CarNewPage() {
                 type="file"
                 accept="image/*"
                 multiple
+                ref={imageInputRef}
                 onChange={handleImageChange}
               />
               <span className="text-xs font-medium text-slate-500">
                 JPG, PNG 등 이미지 파일을 최대 {MAX_IMAGE_COUNT}장까지 선택할 수 있습니다.
-                {imageFiles.length > 0 ? ` 현재 ${imageFiles.length}장 선택됨.` : ''}
+                {selectedImages.length > 0 ? ` 현재 ${selectedImages.length}장 선택됨.` : ''}
               </span>
             </Field>
+            {selectedImages.length > 0 ? (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {selectedImages.map((image) => (
+                  <div key={image.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <div className="aspect-[4/3] bg-slate-50">
+                      <img src={image.previewUrl} alt={image.file.name} className="h-full w-full object-contain object-center" />
+                    </div>
+                    <div className="flex items-center gap-2 px-2.5 py-2">
+                      <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-600">{image.file.name}</span>
+                      <button
+                        type="button"
+                        className="shrink-0 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50"
+                        onClick={() => handleRemoveImage(image.id)}
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           {error ? <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{error}</p> : null}
