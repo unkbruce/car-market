@@ -35,6 +35,25 @@ function appendMessageIfNew(currentMessages, nextMessage) {
   return [...currentMessages, nextMessage];
 }
 
+function getCounterpartLabel(room, currentUser, isDealerOnline) {
+  if (!room || !currentUser) {
+    return null;
+  }
+
+  if (currentUser.uid === room.dealerId) {
+    return {
+      label: `구매자 ${room.buyerName || '이름 미정'}`,
+      showDealerStatus: false,
+    };
+  }
+
+  return {
+    label: `딜러 ${room.dealerName || '이름 미정'}`,
+    showDealerStatus: true,
+    statusText: isDealerOnline ? '온라인' : '오프라인',
+  };
+}
+
 function ChatPage() {
   const { roomId } = useParams();
   const { currentUser, profile, isAuthLoading } = useAuth();
@@ -43,9 +62,12 @@ function ChatPage() {
   const [messageText, setMessageText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isDealerOnline, setIsDealerOnline] = useState(false);
   const [error, setError] = useState('');
   const messagesEndRef = useRef(null);
   const canUseChat = Boolean(currentUser && canProfileUseChat(profile));
+  const dealerId = room?.dealerId;
+  const counterpart = getCounterpartLabel(room, currentUser, isDealerOnline);
 
   useEffect(() => {
     if (isAuthLoading) {
@@ -85,10 +107,6 @@ function ChatPage() {
       return undefined;
     }
 
-    if (!socket.connected) {
-      socket.connect();
-    }
-
     function handleReceiveMessage(message) {
       if (message.roomId !== roomId) {
         return;
@@ -97,29 +115,71 @@ function ChatPage() {
       setMessages((currentMessages) => appendMessageIfNew(currentMessages, message));
     }
 
-    socket.emit(
-      'join-room',
-      {
-        roomId,
-        uid: currentUser.uid,
-      },
-      (response) => {
-        if (!response?.success) {
-          setError(response?.message || '상담방에 입장하지 못했습니다.');
-        }
-      },
-    );
+    function handleDealerOnline({ dealerId: onlineDealerId } = {}) {
+      if (onlineDealerId === dealerId) {
+        setIsDealerOnline(true);
+      }
+    }
+
+    function handleDealerOffline({ dealerId: offlineDealerId } = {}) {
+      if (offlineDealerId === dealerId) {
+        setIsDealerOnline(false);
+      }
+    }
+
+    function handleConnect() {
+      if (profile?.role === 'dealer') {
+        socket.emit('dealer-online', {
+          uid: currentUser.uid,
+          role: profile.role,
+        });
+      }
+
+      socket.emit(
+        'join-room',
+        {
+          roomId,
+          uid: currentUser.uid,
+        },
+        (response) => {
+          if (!response?.success) {
+            setError(response?.message || '상담방에 입장하지 못했습니다.');
+            return;
+          }
+
+          setIsDealerOnline(Boolean(response.dealerOnline));
+        },
+      );
+    }
+
+    socket.on('connect', handleConnect);
     socket.on('receive-message', handleReceiveMessage);
+    socket.on('dealer-online', handleDealerOnline);
+    socket.on('dealer-offline', handleDealerOffline);
+
+    if (!socket.connected) {
+      socket.connect();
+    } else {
+      handleConnect();
+    }
 
     return () => {
       socket.emit('leave-room', {
         roomId,
         uid: currentUser.uid,
       });
+      if (profile?.role === 'dealer') {
+        socket.emit('dealer-offline', {
+          uid: currentUser.uid,
+        });
+      }
       socket.off('receive-message', handleReceiveMessage);
+      socket.off('dealer-online', handleDealerOnline);
+      socket.off('dealer-offline', handleDealerOffline);
+      socket.off('connect', handleConnect);
       socket.disconnect();
     };
-  }, [canUseChat, currentUser, isAuthLoading, roomId]);
+  }, [canUseChat, currentUser, dealerId, isAuthLoading, profile, roomId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -210,11 +270,19 @@ function ChatPage() {
               매물 상세로 돌아가기
             </Link>
             <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950">{room?.carName || '차량 상담'}</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {room?.buyerName || '구매자'} · {room?.dealerName || '딜러'}
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+              <span>{counterpart?.label || '상대방 정보 확인 중'}</span>
+              {counterpart?.showDealerStatus ? (
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                  <span className={`h-2.5 w-2.5 rounded-full ${isDealerOnline ? 'animate-pulse bg-emerald-500' : 'bg-slate-300'}`} />
+                  {counterpart.statusText}
+                </span>
+              ) : null}
+            </div>
           </div>
-          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-500 ring-1 ring-slate-200">실시간 상담</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-500 ring-1 ring-slate-200">실시간 상담</span>
+          </div>
         </div>
 
         <section className="flex min-h-[560px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_34px_rgba(15,23,42,0.06)]">

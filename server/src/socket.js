@@ -3,13 +3,52 @@ import { getAllowedOrigins } from './config/cors.js';
 import { getDB } from './config/db.js';
 import { saveMessageToRoom } from './controllers/chatController.js';
 
-async function isRoomParticipant(roomId, uid) {
+const onlineDealers = new Map();
+
+async function getParticipantRoom(roomId, uid) {
   if (!roomId || !uid) {
-    return false;
+    return null;
   }
 
   const room = await getDB().collection('chat_rooms').findOne({ roomId });
-  return Boolean(room && (room.buyerId === uid || room.dealerId === uid));
+  return room && (room.buyerId === uid || room.dealerId === uid) ? room : null;
+}
+
+function isDealerOnline(dealerId) {
+  return Boolean(dealerId && onlineDealers.has(dealerId));
+}
+
+function markDealerOnline(io, socket, dealerId) {
+  if (!dealerId) {
+    return;
+  }
+
+  socket.data.dealerId = dealerId;
+  onlineDealers.set(dealerId, (onlineDealers.get(dealerId) || 0) + 1);
+  io.emit('dealer-online', {
+    dealerId,
+  });
+}
+
+function markDealerOffline(io, socket) {
+  const dealerId = socket.data.dealerId;
+
+  if (!dealerId) {
+    return;
+  }
+
+  socket.data.dealerId = null;
+  const nextCount = (onlineDealers.get(dealerId) || 1) - 1;
+
+  if (nextCount > 0) {
+    onlineDealers.set(dealerId, nextCount);
+    return;
+  }
+
+  onlineDealers.delete(dealerId);
+  io.emit('dealer-offline', {
+    dealerId,
+  });
 }
 
 function setupSocket(server) {
@@ -22,8 +61,29 @@ function setupSocket(server) {
   });
 
   io.on('connection', (socket) => {
+    socket.on('dealer-online', ({ uid, role } = {}) => {
+      if (role !== 'dealer' || !uid) {
+        return;
+      }
+
+      if (socket.data.dealerId === uid) {
+        io.emit('dealer-online', {
+          dealerId: uid,
+        });
+        return;
+      }
+
+      markDealerOnline(io, socket, uid);
+    });
+
+    socket.on('dealer-offline', () => {
+      markDealerOffline(io, socket);
+    });
+
     socket.on('join-room', async ({ roomId, uid } = {}, callback) => {
-      if (!(await isRoomParticipant(roomId, uid))) {
+      const room = await getParticipantRoom(roomId, uid);
+
+      if (!room) {
         if (typeof callback === 'function') {
           callback({
             success: false,
@@ -38,6 +98,7 @@ function setupSocket(server) {
       if (typeof callback === 'function') {
         callback({
           success: true,
+          dealerOnline: isDealerOnline(room.dealerId),
         });
       }
     });
@@ -76,6 +137,10 @@ function setupSocket(server) {
           });
         }
       }
+    });
+
+    socket.on('disconnect', () => {
+      markDealerOffline(io, socket);
     });
   });
 
