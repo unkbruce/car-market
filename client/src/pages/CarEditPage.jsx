@@ -5,19 +5,16 @@ import Header from '../components/Header.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import {
-  COMPANY_OPTIONS,
-  FUEL_OPTIONS,
   Field,
   INITIAL_CAR_FORM,
   LOCATION_OPTIONS,
   MAX_IMAGE_COUNT,
-  TRANSMISSION_OPTIONS,
-  TYPE_OPTIONS,
   getSelectClass,
   inputClass,
   selectPlaceholder,
   textareaClass,
 } from './CarNewPage.jsx';
+import { COMPANY_OPTIONS, FUEL_OPTIONS, TRANSMISSION_OPTIONS, TYPE_OPTIONS, getCanonicalOptionValue } from '../utils/carOptions.js';
 
 function toFormValue(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -26,15 +23,15 @@ function toFormValue(value) {
 function buildFormFromCar(car) {
   return {
     name: toFormValue(car.name),
-    company: toFormValue(car.company),
+    company: getCanonicalOptionValue(COMPANY_OPTIONS, toFormValue(car.company)),
     price: toFormValue(car.price),
     year: toFormValue(car.year),
     type: toFormValue(car.type),
-    fuel: toFormValue(car.fuel),
+    fuel: getCanonicalOptionValue(FUEL_OPTIONS, toFormValue(car.fuel)),
     mileage: toFormValue(car.mileage),
     location: toFormValue(car.location),
     description: toFormValue(car.description),
-    transmission: toFormValue(car.transmission),
+    transmission: getCanonicalOptionValue(TRANSMISSION_OPTIONS, toFormValue(car.transmission)),
   };
 }
 

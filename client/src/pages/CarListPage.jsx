@@ -4,6 +4,15 @@ import api from '../api/api.js';
 import CarCard from '../components/CarCard.jsx';
 import Header from '../components/Header.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
+import {
+  COMPANY_GROUPS,
+  COMPANY_OPTIONS,
+  FUEL_OPTIONS,
+  TRANSMISSION_OPTIONS,
+  TYPE_OPTIONS,
+  getOptionLabel,
+  getQueryValues,
+} from '../utils/carOptions.js';
 
 const INITIAL_FILTERS = {
   keyword: '',
@@ -33,25 +42,21 @@ const INITIAL_OPEN_SECTIONS = {
   options: false,
 };
 
-const CAR_TYPES = ['경차', '소형차', '준중형차', '중형차', '대형차', '스포츠카', 'SUV', 'RV'];
-const COMPANIES = [
-  { label: 'HYUNDAI', value: '현대' },
-  { label: 'KIA', value: '기아' },
-  { label: 'GENESIS', value: '제네시스' },
-  { label: 'BMW', value: 'BMW' },
-  { label: 'BENZ', value: '벤츠' },
-  { label: 'CHEVROLET', value: '쉐보레' },
-  { label: 'RENAULT', value: '르노' },
-  { label: 'KG MOBILITY', value: 'KG' },
-  { label: '기타 제조사', value: '기타' },
-];
+const INITIAL_COMPANY_GROUP_OPEN_SECTIONS = {
+  domestic: true,
+  imported: true,
+};
+
 const LOCATIONS = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '기타'];
-const FUELS = ['gasoline', 'diesel', 'LPG', 'hybrid', 'electric', '기타'];
-const TRANSMISSIONS = ['auto', 'manual', 'CVT', '기타'];
 const OPTIONS = ['선루프', '내비게이션', '스마트키', '후방 카메라', '가죽시트', '에어백', '기타'];
 
 const ARRAY_FILTERS = ['type', 'company', 'location', 'fuel', 'transmission'];
 const NUMBER_FILTERS = ['minPrice', 'maxPrice', 'minYear', 'maxYear', 'minMileage', 'maxMileage'];
+const SEARCH_VALUE_OPTIONS = {
+  company: COMPANY_OPTIONS,
+  fuel: FUEL_OPTIONS,
+  transmission: TRANSMISSION_OPTIONS,
+};
 
 function buildSearchParams(filters) {
   const params = {};
@@ -62,7 +67,11 @@ function buildSearchParams(filters) {
 
   for (const key of ARRAY_FILTERS) {
     if (filters[key].length > 0) {
-      params[key] = filters[key].join(',');
+      const values = filters[key].flatMap((value) => (
+        SEARCH_VALUE_OPTIONS[key] ? getQueryValues(SEARCH_VALUE_OPTIONS[key], value) : [value]
+      ));
+
+      params[key] = Array.from(new Set(values)).join(',');
     }
   }
 
@@ -80,7 +89,7 @@ function hasActiveSearch(filters) {
 }
 
 function getCompanyLabel(value) {
-  return COMPANIES.find((company) => company.value === value)?.label || value;
+  return getOptionLabel(COMPANY_OPTIONS, value);
 }
 
 function getChipLabel(key, value) {
@@ -95,11 +104,36 @@ function getChipLabel(key, value) {
     minPrice: `${Number(value).toLocaleString('ko-KR')}만원 이상`,
     maxPrice: `${Number(value).toLocaleString('ko-KR')}만원 이하`,
     location: value,
-    fuel: value,
-    transmission: value,
+    fuel: getOptionLabel(FUEL_OPTIONS, value),
+    transmission: getOptionLabel(TRANSMISSION_OPTIONS, value),
   };
 
   return labels[key] || value;
+}
+
+function CompanyFilterGroups({ groupOpenSections, selectedValues, onGroupToggle, onToggle }) {
+  return (
+    <div className="grid gap-2">
+      {COMPANY_GROUPS.map((group) => (
+        <div key={group.key} className="rounded-lg bg-slate-50/70 px-2 py-1.5">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-3 py-1 text-left text-[12px] font-bold text-slate-700"
+            onClick={() => onGroupToggle(group.key)}
+          >
+            <span>{group.label}</span>
+            <ChevronDown size={14} className={`text-slate-400 transition ${groupOpenSections[group.key] ? 'rotate-180' : ''}`} />
+          </button>
+
+          {groupOpenSections[group.key] ? (
+            <div className="mt-1">
+              <CheckboxList name="company" options={group.options} selectedValues={selectedValues} onToggle={onToggle} />
+            </div>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function Field({ label, children }) {
@@ -168,6 +202,7 @@ function CarListPage() {
   const [error, setError] = useState('');
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [openSections, setOpenSections] = useState(INITIAL_OPEN_SECTIONS);
+  const [companyGroupOpenSections, setCompanyGroupOpenSections] = useState(INITIAL_COMPANY_GROUP_OPEN_SECTIONS);
 
   const isSearchMode = useMemo(() => hasActiveSearch(filters), [filters]);
   const activeChips = useMemo(() => {
@@ -266,6 +301,13 @@ function CarListPage() {
     }));
   }
 
+  function handleCompanyGroupToggle(section) {
+    setCompanyGroupOpenSections((currentSections) => ({
+      ...currentSections,
+      [section]: !currentSections[section],
+    }));
+  }
+
   function handleRemoveChip(key, value) {
     setFilters((currentFilters) => {
       if (Array.isArray(currentFilters[key])) {
@@ -294,10 +336,9 @@ function CarListPage() {
         <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="lg:sticky lg:top-20 lg:self-start">
             <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.06)]">
-              <div className="flex items-center justify-between border-b border-slate-200/70 px-3.5 py-3">
+              <div className="flex items-center justify-between border-b border-slate-200/70 px-3.5 py-3.5">
                 <div>
-                  <h2 className="text-base font-bold tracking-tight text-slate-950">필터</h2>
-                  <p className="mt-0.5 text-[11px] text-slate-500">조건을 선택하면 바로 반영됩니다.</p>
+                  <h2 className="text-base font-bold tracking-tight text-slate-950">차량 조건</h2>
                 </div>
                 <button
                   type="button"
@@ -311,16 +352,20 @@ function CarListPage() {
 
               <div className="px-3.5">
                 <FilterSection title="차종" helper={filters.type.length ? `${filters.type.length}` : ''} isOpen={openSections.type} onToggle={() => handleSectionToggle('type')}>
-                  <CheckboxList name="type" options={CAR_TYPES} selectedValues={filters.type} onToggle={handleCheckboxToggle} />
+                  <CheckboxList name="type" options={TYPE_OPTIONS} selectedValues={filters.type} onToggle={handleCheckboxToggle} />
                 </FilterSection>
 
                 <FilterSection
                   title="제조사/모델/등급"
-                  helper={filters.company.length ? `${filters.company.length}` : ''}
                   isOpen={openSections.company}
                   onToggle={() => handleSectionToggle('company')}
                 >
-                  <CheckboxList name="company" options={COMPANIES} selectedValues={filters.company} onToggle={handleCheckboxToggle} />
+                  <CompanyFilterGroups
+                    groupOpenSections={companyGroupOpenSections}
+                    selectedValues={filters.company}
+                    onGroupToggle={handleCompanyGroupToggle}
+                    onToggle={handleCheckboxToggle}
+                  />
                 </FilterSection>
 
                 <FilterSection title="연식" isOpen={openSections.year} onToggle={() => handleSectionToggle('year')}>
@@ -367,7 +412,7 @@ function CarListPage() {
                 </FilterSection>
 
                 <FilterSection title="연료" helper={filters.fuel.length ? `${filters.fuel.length}` : ''} isOpen={openSections.fuel} onToggle={() => handleSectionToggle('fuel')}>
-                  <CheckboxList name="fuel" options={FUELS} selectedValues={filters.fuel} onToggle={handleCheckboxToggle} />
+                  <CheckboxList name="fuel" options={FUEL_OPTIONS} selectedValues={filters.fuel} onToggle={handleCheckboxToggle} />
                 </FilterSection>
 
                 <FilterSection
@@ -376,7 +421,7 @@ function CarListPage() {
                   isOpen={openSections.transmission}
                   onToggle={() => handleSectionToggle('transmission')}
                 >
-                  <CheckboxList name="transmission" options={TRANSMISSIONS} selectedValues={filters.transmission} onToggle={handleCheckboxToggle} />
+                  <CheckboxList name="transmission" options={TRANSMISSION_OPTIONS} selectedValues={filters.transmission} onToggle={handleCheckboxToggle} />
                 </FilterSection>
 
                 <FilterSection title="옵션" helper="준비 중" isOpen={openSections.options} onToggle={() => handleSectionToggle('options')}>
@@ -465,7 +510,7 @@ function CarListPage() {
             ) : null}
 
             {!error && cars.length > 0 ? (
-              <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
+              <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
                 {cars.map((car) => (
                   <CarCard key={car._id} car={car} />
                 ))}

@@ -1,3 +1,5 @@
+import { COMPANY_OPTIONS, FUEL_OPTIONS, getOptionLabel } from './carOptions.js';
+
 export function formatPrice(price) {
   const numericPrice = Number(price);
 
@@ -23,15 +25,13 @@ export function formatFuel(fuel) {
     return '연료 미정';
   }
 
-  const fuelLabels = {
-    gasoline: '가솔린',
-    diesel: '디젤',
-    hybrid: '하이브리드',
-    electric: '전기',
-    lpg: 'LPG',
-  };
+  return getOptionLabel(FUEL_OPTIONS, fuel);
+}
 
-  const normalizedFuel = String(fuel).trim().toLowerCase();
+export function formatCompany(company) {
+  if (!company) {
+    return '제조사';
+  }
 
-  return fuelLabels[normalizedFuel] || fuel;
+  return getOptionLabel(COMPANY_OPTIONS, company);
 }

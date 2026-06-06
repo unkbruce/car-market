@@ -4,7 +4,7 @@ import { MessageCircle } from 'lucide-react';
 import { PLACEHOLDER_IMAGE } from './CarImagePlaceholder.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { canUseChat, createOrGetChatRoom } from '../utils/chat.js';
-import { formatDistance, formatFuel, formatPrice } from '../utils/formatters.js';
+import { formatCompany, formatDistance, formatFuel, formatPrice } from '../utils/formatters.js';
 
 function getCarImage(car) {
   if (Array.isArray(car.imageUrls) && car.imageUrls.length > 0) {
@@ -103,12 +103,15 @@ function CarCard({ car }) {
             {car.name || '이름 없는 차량'}
           </h3>
           <p className="mt-1 text-[12px] leading-tight text-slate-500">
+            {formatCompany(car.company)}
+          </p>
+          <p className="mt-1 text-[12px] leading-tight text-slate-500">
             {car.year ? `${car.year}년식` : '연식 미정'} · {formatDistance(car.mileage)}
           </p>
           <p className="mt-0.5 text-[12px] leading-tight text-slate-500">
             {formatFuel(car.fuel)} · {car.location || '지역 미정'}
           </p>
-          <p className="mt-1.5 text-[18px] font-extrabold leading-none tracking-tight text-slate-950">
+          <p className="mt-1.5 text-[15px] font-extrabold leading-none tracking-tight text-slate-950">
             {formatPrice(car.price)}
           </p>
         </div>

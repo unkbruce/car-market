@@ -4,6 +4,7 @@ import api from '../api/api.js';
 import Header from '../components/Header.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { COMPANY_OPTIONS, FUEL_OPTIONS, TRANSMISSION_OPTIONS, TYPE_OPTIONS } from '../utils/carOptions.js';
 
 export const INITIAL_CAR_FORM = {
   name: '',
@@ -29,33 +30,7 @@ export const selectPlaceholder = (
     선택해주세요
   </option>
 );
-export const COMPANY_OPTIONS = [
-  { label: 'HYUNDAI', value: '현대' },
-  { label: 'KIA', value: '기아' },
-  { label: 'GENESIS', value: '제네시스' },
-  { label: 'BMW', value: 'BMW' },
-  { label: 'BENZ', value: '벤츠' },
-  { label: 'CHEVROLET', value: '쉐보레' },
-  { label: 'RENAULT', value: '르노' },
-  { label: 'KG MOBILITY', value: 'KG' },
-  { label: '기타', value: '기타' },
-];
-export const TYPE_OPTIONS = ['경차', '소형차', '준중형차', '중형차', '대형차', '스포츠카', 'SUV', 'RV'];
-export const FUEL_OPTIONS = [
-  { label: '가솔린', value: 'gasoline' },
-  { label: '디젤', value: 'diesel' },
-  { label: 'LPG', value: 'LPG' },
-  { label: '하이브리드', value: 'hybrid' },
-  { label: '전기', value: 'electric' },
-  { label: '기타', value: '기타' },
-];
 export const LOCATION_OPTIONS = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '기타'];
-export const TRANSMISSION_OPTIONS = [
-  { label: '오토', value: 'auto' },
-  { label: '수동', value: 'manual' },
-  { label: 'CVT', value: 'CVT' },
-  { label: '기타', value: '기타' },
-];
 export const MAX_IMAGE_COUNT = 8;
 
 export function getSelectClass(value) {
