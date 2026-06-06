@@ -4,6 +4,7 @@ import api from '../api/api.js';
 import Header from '../components/Header.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { SAMPLE_CAR_IMAGES } from '../data/sampleCarImages.js';
 import { COMPANY_OPTIONS, FUEL_OPTIONS, TRANSMISSION_OPTIONS, TYPE_OPTIONS } from '../utils/carOptions.js';
 
 export const INITIAL_CAR_FORM = {
@@ -32,6 +33,10 @@ export const selectPlaceholder = (
 );
 export const LOCATION_OPTIONS = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '기타'];
 export const MAX_IMAGE_COUNT = 8;
+const IMAGE_INPUT_MODES = {
+  sample: 'sample',
+  upload: 'upload',
+};
 
 export function getSelectClass(value) {
   return `${controlClass} ${value ? 'text-slate-900' : 'text-slate-400'}`;
@@ -53,6 +58,9 @@ function CarNewPage() {
   const navigate = useNavigate();
   const { currentUser, profile, isAuthenticated, isAuthLoading } = useAuth();
   const [form, setForm] = useState(INITIAL_CAR_FORM);
+  const [imageInputMode, setImageInputMode] = useState(IMAGE_INPUT_MODES.sample);
+  const [selectedSampleCarId, setSelectedSampleCarId] = useState('');
+  const [selectedSampleImageUrls, setSelectedSampleImageUrls] = useState([]);
   const [selectedImages, setSelectedImages] = useState([]);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,6 +86,37 @@ function CarNewPage() {
       ...currentForm,
       [name]: value,
     }));
+  }
+
+  function handleImageInputModeChange(nextMode) {
+    setImageInputMode(nextMode);
+    setError('');
+
+    if (nextMode === IMAGE_INPUT_MODES.sample) {
+      selectedImages.forEach((image) => {
+        URL.revokeObjectURL(image.previewUrl);
+      });
+      setSelectedImages([]);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = '';
+      }
+      return;
+    }
+
+    setSelectedSampleCarId('');
+    setSelectedSampleImageUrls([]);
+  }
+
+  function handleSampleCarSelect(sampleCar) {
+    const sampleImageUrls = Array.isArray(sampleCar.imageUrls) ? sampleCar.imageUrls.filter(Boolean) : [];
+
+    setSelectedSampleCarId(sampleCar.id);
+    setSelectedSampleImageUrls(sampleImageUrls.slice(0, MAX_IMAGE_COUNT));
+    setError(sampleImageUrls.length > MAX_IMAGE_COUNT ? `이미지는 최대 ${MAX_IMAGE_COUNT}장까지만 등록됩니다.` : '');
+  }
+
+  function handleRemoveSampleImage(imageUrl) {
+    setSelectedSampleImageUrls((currentUrls) => currentUrls.filter((url) => url !== imageUrl));
   }
 
   function handleImageChange(event) {
@@ -147,9 +186,13 @@ function CarNewPage() {
       formData.append('dealerId', currentUser.uid);
       formData.append('dealerName', profile?.displayName || currentUser.displayName || currentUser.email);
 
-      selectedImages.forEach((image) => {
-        formData.append('images', image.file);
-      });
+      if (imageInputMode === IMAGE_INPUT_MODES.sample) {
+        formData.append('sampleImageUrls', JSON.stringify(selectedSampleImageUrls));
+      } else {
+        selectedImages.forEach((image) => {
+          formData.append('images', image.file);
+        });
+      }
 
       const response = await api.post('/api/cars', formData);
 
@@ -309,21 +352,110 @@ function CarNewPage() {
 
           <div className="mt-4">
             <Field label="차량 사진">
-              <input
-                className="block w-full cursor-pointer rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 outline-none transition file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white hover:bg-slate-100 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10"
-                name="images"
-                type="file"
-                accept="image/*"
-                multiple
-                ref={imageInputRef}
-                onChange={handleImageChange}
-              />
-              <span className="text-xs font-medium text-slate-500">
-                JPG, PNG 등 이미지 파일을 최대 {MAX_IMAGE_COUNT}장까지 선택할 수 있습니다.
-                {selectedImages.length > 0 ? ` 현재 ${selectedImages.length}장 선택됨.` : ''}
-              </span>
+              <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-1">
+                <button
+                  type="button"
+                  className={`h-8 rounded-md px-3 text-xs font-bold transition ${
+                    imageInputMode === IMAGE_INPUT_MODES.sample ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                  onClick={() => handleImageInputModeChange(IMAGE_INPUT_MODES.sample)}
+                >
+                  샘플 이미지 선택
+                </button>
+                <button
+                  type="button"
+                  className={`h-8 rounded-md px-3 text-xs font-bold transition ${
+                    imageInputMode === IMAGE_INPUT_MODES.upload ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                  onClick={() => handleImageInputModeChange(IMAGE_INPUT_MODES.upload)}
+                >
+                  직접 업로드
+                </button>
+              </div>
+
+              {imageInputMode === IMAGE_INPUT_MODES.sample ? (
+                <div className="mt-3">
+                  {SAMPLE_CAR_IMAGES.length > 0 ? (
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                      {SAMPLE_CAR_IMAGES.map((sampleCar) => {
+                        const sampleImageUrls = Array.isArray(sampleCar.imageUrls) ? sampleCar.imageUrls : [];
+                        const previewImageUrl = sampleImageUrls[0] || '';
+                        const isSelected = selectedSampleCarId === sampleCar.id;
+
+                        return (
+                          <button
+                            type="button"
+                            key={sampleCar.id}
+                            className={`overflow-hidden rounded-lg border bg-white text-left transition ${
+                              isSelected ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-blue-200'
+                            }`}
+                            onClick={() => handleSampleCarSelect(sampleCar)}
+                          >
+                            <div className="aspect-[4/3] bg-slate-50">
+                              {previewImageUrl ? (
+                                <img src={previewImageUrl} alt={sampleCar.label} className="h-full w-full object-contain object-center" />
+                              ) : (
+                                <div className="grid h-full place-items-center text-xs font-medium text-slate-400">이미지 없음</div>
+                              )}
+                            </div>
+                            <div className="px-2.5 py-2">
+                              <span className="block truncate text-xs font-bold text-slate-700">{sampleCar.label}</span>
+                              <span className="mt-0.5 block text-[11px] font-medium text-slate-400">{sampleImageUrls.length}장</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">등록된 샘플 이미지가 없습니다.</p>
+                  )}
+                  <span className="mt-2 block text-xs font-medium text-slate-500">
+                    샘플 이미지는 최대 {MAX_IMAGE_COUNT}장까지 선택할 수 있습니다.
+                    {selectedSampleImageUrls.length > 0 ? ` 현재 ${selectedSampleImageUrls.length}장 선택됨.` : ''}
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <input
+                    className="mt-3 block w-full cursor-pointer rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 outline-none transition file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white hover:bg-slate-100 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10"
+                    name="images"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    ref={imageInputRef}
+                    onChange={handleImageChange}
+                  />
+                  <span className="text-xs font-medium text-slate-500">
+                    JPG, PNG 등 이미지 파일을 최대 {MAX_IMAGE_COUNT}장까지 선택할 수 있습니다.
+                    {selectedImages.length > 0 ? ` 현재 ${selectedImages.length}장 선택됨.` : ''}
+                  </span>
+                </>
+              )}
             </Field>
-            {selectedImages.length > 0 ? (
+
+            {imageInputMode === IMAGE_INPUT_MODES.sample && selectedSampleImageUrls.length > 0 ? (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {selectedSampleImageUrls.map((imageUrl, index) => (
+                  <div key={imageUrl} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <div className="aspect-[4/3] bg-slate-50">
+                      <img src={imageUrl} alt={`선택한 샘플 이미지 ${index + 1}`} className="h-full w-full object-contain object-center" />
+                    </div>
+                    <div className="flex items-center gap-2 px-2.5 py-2">
+                      <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-600">{imageUrl}</span>
+                      <button
+                        type="button"
+                        className="shrink-0 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50"
+                        onClick={() => handleRemoveSampleImage(imageUrl)}
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {imageInputMode === IMAGE_INPUT_MODES.upload && selectedImages.length > 0 ? (
               <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {selectedImages.map((image) => (
                   <div key={image.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white">

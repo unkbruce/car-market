@@ -132,6 +132,10 @@ function getImageNamesByKeptUrls(existingCar, keepImageUrls) {
   });
 }
 
+function parseSampleImageUrls(payload) {
+  return parseStringArray(payload.sampleImageUrls).slice(0, 8);
+}
+
 function getRequestUid(req) {
   return req.body?.uid?.trim() || req.query?.uid?.trim() || '';
 }
@@ -371,6 +375,7 @@ export async function createCar(req, res) {
       });
     }
 
+    const sampleImageUrls = uploadedImageUrls.length > 0 ? [] : parseSampleImageUrls(req.body);
     const carData = normalizeCarPayload(normalizeImageFields({
       ...req.body,
       ...(uploadedImageUrls.length > 0
@@ -379,8 +384,15 @@ export async function createCar(req, res) {
             imageNames: uploadedImageNames,
             imageUrl: uploadedImageUrls[0],
           }
+        : sampleImageUrls.length > 0
+          ? {
+              imageUrls: sampleImageUrls,
+              imageNames: sampleImageUrls.map(() => ''),
+              imageUrl: sampleImageUrls[0],
+            }
         : {}),
     }));
+    delete carData.sampleImageUrls;
     validateCarPayload(carData);
 
     const newCar = buildCarDocument(carData, now);
@@ -458,6 +470,7 @@ export async function updateCar(req, res) {
     delete updateData.replaceImages;
     delete updateData.keepImageUrls;
     delete updateData.keepImageNames;
+    delete updateData.sampleImageUrls;
     delete updateData.dealerId;
     delete updateData.dealerName;
 
