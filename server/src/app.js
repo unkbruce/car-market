@@ -4,13 +4,14 @@ import express from 'express';
 import carsRouter from './routes/cars.js';
 import chatsRouter from './routes/chats.js';
 import usersRouter from './routes/users.js';
+import { getCorsOptions } from './config/cors.js';
 import { uploadsDir } from './middleware/upload.js';
 
 dotenv.config();
 
 const app = express();
 
-app.use(cors());
+app.use(cors(getCorsOptions()));
 app.use(express.json());
 app.use('/uploads', express.static(uploadsDir));
 

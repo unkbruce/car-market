@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/api.js';
+import socket from '../api/socket.js';
 import Header from '../components/Header.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { canUseChat as canProfileUseChat } from '../utils/chat.js';
 
 function formatMessageTime(value) {
   if (!value) {
@@ -18,6 +20,21 @@ function formatMessageTime(value) {
   }).format(new Date(value));
 }
 
+function getMessageKey(message) {
+  return message?._id || `${message?.roomId}-${message?.senderId}-${message?.createdAt}-${message?.text}`;
+}
+
+function appendMessageIfNew(currentMessages, nextMessage) {
+  const nextMessageKey = getMessageKey(nextMessage);
+  const hasSameMessage = currentMessages.some((message) => getMessageKey(message) === nextMessageKey);
+
+  if (hasSameMessage) {
+    return currentMessages;
+  }
+
+  return [...currentMessages, nextMessage];
+}
+
 function ChatPage() {
   const { roomId } = useParams();
   const { currentUser, profile, isAuthLoading } = useAuth();
@@ -28,7 +45,7 @@ function ChatPage() {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
   const messagesEndRef = useRef(null);
-  const canUseChat = Boolean(currentUser && ['buyer', 'dealer'].includes(profile?.role));
+  const canUseChat = Boolean(currentUser && canProfileUseChat(profile));
 
   useEffect(() => {
     if (isAuthLoading) {
@@ -64,6 +81,47 @@ function ChatPage() {
   }, [canUseChat, currentUser, isAuthLoading, roomId]);
 
   useEffect(() => {
+    if (!canUseChat || !currentUser || isAuthLoading) {
+      return undefined;
+    }
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    function handleReceiveMessage(message) {
+      if (message.roomId !== roomId) {
+        return;
+      }
+
+      setMessages((currentMessages) => appendMessageIfNew(currentMessages, message));
+    }
+
+    socket.emit(
+      'join-room',
+      {
+        roomId,
+        uid: currentUser.uid,
+      },
+      (response) => {
+        if (!response?.success) {
+          setError(response?.message || '상담방에 입장하지 못했습니다.');
+        }
+      },
+    );
+    socket.on('receive-message', handleReceiveMessage);
+
+    return () => {
+      socket.emit('leave-room', {
+        roomId,
+        uid: currentUser.uid,
+      });
+      socket.off('receive-message', handleReceiveMessage);
+      socket.disconnect();
+    };
+  }, [canUseChat, currentUser, isAuthLoading, roomId]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
@@ -79,18 +137,24 @@ function ChatPage() {
       setIsSending(true);
       setError('');
 
-      const response = await api.post(`/api/chats/rooms/${roomId}/messages`, {
+      socket.emit('send-message', {
+        roomId,
         senderId: currentUser.uid,
         senderName: profile?.displayName || currentUser.displayName || currentUser.email,
         text: trimmedMessage,
-      });
+      }, (response) => {
+        setIsSending(false);
 
-      setMessages((prevMessages) => [...prevMessages, response.data.data]);
-      setMessageText('');
-    } catch (sendError) {
-      setError(sendError.response?.data?.message || '메시지 전송에 실패했습니다.');
-    } finally {
+        if (!response?.success) {
+          setError(response?.message || '메시지 전송에 실패했습니다.');
+          return;
+        }
+
+        setMessageText('');
+      });
+    } catch {
       setIsSending(false);
+      setError('메시지 전송에 실패했습니다.');
     }
   }
 

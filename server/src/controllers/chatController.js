@@ -32,6 +32,54 @@ function isRoomParticipant(room, uid) {
   return Boolean(uid && room && (room.buyerId === uid || room.dealerId === uid));
 }
 
+export async function saveMessageToRoom({ roomId, senderId, senderName, text }) {
+  if (!senderId || !text?.trim()) {
+    const error = new Error('senderId and text are required.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const room = await getChatRoomsCollection().findOne({ roomId });
+
+  if (!room) {
+    const error = new Error('Chat room not found.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (!isRoomParticipant(room, senderId)) {
+    const error = new Error('You can only send messages to your own chat room.');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const now = new Date();
+  const newMessage = {
+    roomId,
+    senderId,
+    senderName: senderName?.trim() || '',
+    text: text.trim(),
+    createdAt: now,
+  };
+  const result = await getMessagesCollection().insertOne(newMessage);
+
+  await getChatRoomsCollection().updateOne(
+    { roomId },
+    {
+      $set: {
+        lastMessage: newMessage.text,
+        lastMessageAt: now,
+        updatedAt: now,
+      },
+    },
+  );
+
+  return {
+    _id: result.insertedId,
+    ...newMessage,
+  };
+}
+
 export async function createOrGetRoom(req, res) {
   try {
     const { carId, buyerId, buyerName, dealerId } = req.body;
@@ -137,49 +185,18 @@ export async function createMessage(req, res) {
     const { roomId } = req.params;
     const { senderId, senderName, text } = req.body;
 
-    if (!senderId || !text?.trim()) {
-      return sendError(res, 400, 'senderId and text are required.');
-    }
-
-    const room = await getChatRoomsCollection().findOne({ roomId });
-
-    if (!room) {
-      return sendError(res, 404, 'Chat room not found.');
-    }
-
-    if (!isRoomParticipant(room, senderId)) {
-      return sendError(res, 403, 'You can only send messages to your own chat room.');
-    }
-
-    const now = new Date();
-    const newMessage = {
+    const message = await saveMessageToRoom({
       roomId,
       senderId,
-      senderName: senderName?.trim() || '',
-      text: text.trim(),
-      createdAt: now,
-    };
-    const result = await getMessagesCollection().insertOne(newMessage);
-
-    await getChatRoomsCollection().updateOne(
-      { roomId },
-      {
-        $set: {
-          lastMessage: newMessage.text,
-          lastMessageAt: now,
-          updatedAt: now,
-        },
-      },
-    );
+      senderName,
+      text,
+    });
 
     return res.status(201).json({
       success: true,
-      data: {
-        _id: result.insertedId,
-        ...newMessage,
-      },
+      data: message,
     });
   } catch (error) {
-    return sendError(res, 500, error.message);
+    return sendError(res, error.statusCode || 500, error.message);
   }
 }
