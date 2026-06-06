@@ -50,6 +50,14 @@ function getCarImageUrls(car) {
   return [];
 }
 
+function getCarImageName(car, index) {
+  if (Array.isArray(car.imageNames) && car.imageNames[index]) {
+    return car.imageNames[index];
+  }
+
+  return `기존 이미지 ${index + 1}`;
+}
+
 function SelectOptions({ options }) {
   return options.map((option) => {
     const item = typeof option === 'string' ? { label: option, value: option } : option;
@@ -102,6 +110,7 @@ function CarEditPage() {
         setExistingImages(getCarImageUrls(carData).map((imageUrl, index) => ({
           id: `${imageUrl}-${index}`,
           imageUrl,
+          imageName: getCarImageName(carData, index),
         })));
       } catch (fetchError) {
         setError(fetchError.response?.data?.message || '차량 정보를 불러오지 못했습니다.');
@@ -193,6 +202,7 @@ function CarEditPage() {
 
       formData.append('uid', currentUser.uid);
       formData.append('keepImageUrls', JSON.stringify(existingImages.map((image) => image.imageUrl)));
+      formData.append('keepImageNames', JSON.stringify(existingImages.map((image) => image.imageName)));
 
       newImages.forEach((image) => {
         formData.append('images', image.file);
@@ -356,7 +366,7 @@ function CarEditPage() {
                       <img src={image.imageUrl} alt={`기존 이미지 ${index + 1}`} className="h-full w-full object-contain object-center" />
                     </div>
                     <div className="flex items-center gap-2 px-2.5 py-2">
-                      <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-600">기존 이미지 {index + 1}</span>
+                      <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-600">{image.imageName || `기존 이미지 ${index + 1}`}</span>
                       <button
                         type="button"
                         className="shrink-0 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50"

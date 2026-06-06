@@ -77,6 +77,14 @@ function getUploadedImageUrls(req) {
   return req.files.map((file) => `${req.protocol}://${req.get('host')}/uploads/${file.filename}`);
 }
 
+function getUploadedImageNames(req) {
+  if (!Array.isArray(req.files) || req.files.length === 0) {
+    return [];
+  }
+
+  return req.files.map((file) => file.originalname);
+}
+
 function normalizeImageFields(payload) {
   const normalized = { ...payload };
 
@@ -87,26 +95,41 @@ function normalizeImageFields(payload) {
   return normalized;
 }
 
-function parseKeepImageUrls(value, fallbackImageUrls) {
+function parseStringArray(value, fallbackValues = []) {
   if (value === undefined) {
-    return fallbackImageUrls;
+    return fallbackValues;
   }
 
   if (Array.isArray(value)) {
-    return value.map((imageUrl) => String(imageUrl).trim()).filter(Boolean);
+    return value.map((item) => String(item).trim()).filter(Boolean);
   }
 
   try {
     const parsedValue = JSON.parse(value);
 
     if (Array.isArray(parsedValue)) {
-      return parsedValue.map((imageUrl) => String(imageUrl).trim()).filter(Boolean);
+      return parsedValue.map((item) => String(item).trim()).filter(Boolean);
     }
   } catch {
-    return String(value).split(',').map((imageUrl) => imageUrl.trim()).filter(Boolean);
+    return String(value).split(',').map((item) => item.trim()).filter(Boolean);
   }
 
   return [];
+}
+
+function getImageNamesByKeptUrls(existingCar, keepImageUrls) {
+  const existingImageUrls = Array.isArray(existingCar.imageUrls)
+    ? existingCar.imageUrls
+    : existingCar.imageUrl
+      ? [existingCar.imageUrl]
+      : [];
+  const existingImageNames = Array.isArray(existingCar.imageNames) ? existingCar.imageNames : [];
+
+  return keepImageUrls.map((imageUrl) => {
+    const imageIndex = existingImageUrls.indexOf(imageUrl);
+
+    return imageIndex >= 0 ? existingImageNames[imageIndex] || '' : '';
+  });
 }
 
 function getRequestUid(req) {
@@ -318,6 +341,7 @@ export async function createCar(req, res) {
   try {
     const now = new Date();
     const uploadedImageUrls = getUploadedImageUrls(req);
+    const uploadedImageNames = getUploadedImageNames(req);
 
     if (Array.isArray(req.body)) {
       if (req.body.length === 0) {
@@ -352,6 +376,7 @@ export async function createCar(req, res) {
       ...(uploadedImageUrls.length > 0
         ? {
             imageUrls: uploadedImageUrls,
+            imageNames: uploadedImageNames,
             imageUrl: uploadedImageUrls[0],
           }
         : {}),
@@ -398,17 +423,23 @@ export async function updateCar(req, res) {
     }
 
     const uploadedImageUrls = getUploadedImageUrls(req);
+    const uploadedImageNames = getUploadedImageNames(req);
     const existingImageUrls = Array.isArray(existingCar.imageUrls)
       ? existingCar.imageUrls
       : existingCar.imageUrl
         ? [existingCar.imageUrl]
         : [];
-    const keepImageUrls = parseKeepImageUrls(req.body.keepImageUrls, existingImageUrls);
+    const keepImageUrls = parseStringArray(req.body.keepImageUrls, existingImageUrls);
+    const keepImageNames = req.body.keepImageNames === undefined
+      ? getImageNamesByKeptUrls(existingCar, keepImageUrls)
+      : parseStringArray(req.body.keepImageNames);
     const nextImageUrls = [...keepImageUrls, ...uploadedImageUrls].slice(0, 8);
+    const nextImageNames = [...keepImageNames, ...uploadedImageNames].slice(0, 8);
 
     const carData = normalizeCarPayload(normalizeImageFields({
       ...req.body,
       imageUrls: nextImageUrls,
+      imageNames: nextImageNames,
       imageUrl: nextImageUrls[0] || '',
     }));
 
@@ -426,6 +457,7 @@ export async function updateCar(req, res) {
     delete updateData.uid;
     delete updateData.replaceImages;
     delete updateData.keepImageUrls;
+    delete updateData.keepImageNames;
     delete updateData.dealerId;
     delete updateData.dealerName;
 
