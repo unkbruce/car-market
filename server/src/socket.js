@@ -1,7 +1,7 @@
 import { Server } from 'socket.io';
 import { getAllowedOrigins } from './config/cors.js';
 import { getDB } from './config/db.js';
-import { saveMessageToRoom } from './controllers/chatController.js';
+import { handleChatMessage } from './services/chatMessageHandler.js';
 
 const onlineDealers = new Map();
 
@@ -113,15 +113,17 @@ function setupSocket(server) {
 
     socket.on('send-message', async (payload = {}, callback) => {
       try {
-        const { roomId, senderId, senderName, text } = payload;
-        const message = await saveMessageToRoom({
-          roomId,
-          senderId,
-          senderName,
-          text,
+        const { roomId } = payload;
+        const { message, agentReply } = await handleChatMessage({
+          payload,
+          isDealerOnline,
         });
 
         io.to(roomId).emit('receive-message', message);
+
+        if (agentReply) {
+          io.to(roomId).emit('receive-message', agentReply);
+        }
 
         if (typeof callback === 'function') {
           callback({
