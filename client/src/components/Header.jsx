@@ -47,6 +47,18 @@ function Header({ subtitle }) {
               차량 등록
             </NavLink>
           ) : null}
+          {isAuthenticated ? (
+            <NavLink
+              to="/chats"
+              className={({ isActive }) =>
+                `hidden rounded-lg px-2.5 py-1.5 text-sm font-bold transition sm:inline-flex ${
+                  isActive ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
+                }`
+              }
+            >
+              상담 목록
+            </NavLink>
+          ) : null}
 
           {isAuthLoading ? (
             <span className="hidden h-8 w-20 rounded-lg bg-slate-100 sm:inline-block" aria-label="인증 상태 확인 중" />

@@ -214,11 +214,11 @@ function ChatPage() {
               {room?.buyerName || '구매자'} · {room?.dealerName || '딜러'}
             </p>
           </div>
-          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-500 ring-1 ring-slate-200">저장형 상담</span>
+          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-500 ring-1 ring-slate-200">실시간 상담</span>
         </div>
 
         <section className="flex min-h-[560px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_34px_rgba(15,23,42,0.06)]">
-          <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50/70 p-4 sm:p-5">
+          <div className="flex-1 space-y-3.5 overflow-y-auto bg-slate-50/70 p-4 sm:p-5">
             {error ? <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-600">{error}</p> : null}
             {messages.length === 0 ? (
               <div className="grid h-full min-h-[360px] place-items-center text-center">
@@ -233,14 +233,16 @@ function ChatPage() {
 
                 return (
                   <div key={message._id || `${message.senderId}-${message.createdAt}`} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                    <div
-                      className={`max-w-[78%] rounded-2xl px-4 py-2.5 shadow-sm ${
-                        isMine ? 'rounded-br-sm bg-blue-600 text-white' : 'rounded-bl-sm border border-slate-200 bg-white text-slate-800'
-                      }`}
-                    >
-                      {!isMine ? <p className="mb-1 text-xs font-bold text-slate-500">{message.senderName || '상대방'}</p> : null}
-                      <p className="whitespace-pre-line text-sm leading-6">{message.text}</p>
-                      <p className={`mt-1 text-right text-[11px] ${isMine ? 'text-blue-100' : 'text-slate-400'}`}>{formatMessageTime(message.createdAt)}</p>
+                    <div className={`flex max-w-[75%] flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                      {!isMine ? <p className="mb-1 px-1 text-[11px] font-bold text-slate-500">{message.senderName || '상대방'}</p> : null}
+                      <div
+                        className={`rounded-2xl px-4 py-2.5 shadow-sm ${
+                          isMine ? 'rounded-br-md bg-blue-600 text-white' : 'rounded-bl-md border border-slate-200 bg-white text-slate-800'
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.text}</p>
+                      </div>
+                      <p className={`mt-1 px-1 text-[11px] ${isMine ? 'text-slate-400' : 'text-slate-400'}`}>{formatMessageTime(message.createdAt)}</p>
                     </div>
                   </div>
                 );
