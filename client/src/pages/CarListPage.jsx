@@ -393,9 +393,10 @@ function CarListPage() {
         <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="lg:sticky lg:top-20 lg:self-start">
             <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.06)]">
-              <div className="flex items-center justify-between border-b border-slate-200/70 px-3.5 py-3.5">
-                <div>
+              <div className="flex items-center justify-between gap-3 border-b border-slate-200/70 px-3.5 py-3.5">
+                <div className="flex min-w-0 items-center gap-2">
                   <h2 className="text-base font-bold tracking-tight text-slate-950">차량 조건</h2>
+                  <span className="shrink-0 text-sm font-semibold text-blue-700">{totalCars.toLocaleString('ko-KR')}대</span>
                 </div>
                 <button
                   type="button"
@@ -520,34 +521,23 @@ function CarListPage() {
               </div>
             </div>
 
-            <div className="mb-2 mt-2.5 flex flex-col gap-2">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-lg font-bold tracking-tight text-slate-950">차량 목록</h2>
-                  <p className="mt-0.5 text-xs text-slate-600">
-                    총 {totalCars.toLocaleString('ko-KR')}대의 차량이 검색되었습니다.
-                    {totalCars > 0 ? ` ${currentPage}/${totalPages}페이지` : ''}
-                  </p>
-                </div>
-                {isLoading ? <span className="text-xs font-medium text-blue-600">필터 적용 중...</span> : null}
-              </div>
+            {isLoading && cars.length > 0 ? <div className="mt-2.5 text-xs font-medium text-blue-600">필터 적용 중...</div> : null}
 
-              {activeChips.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {activeChips.map((chip) => (
-                    <button
-                      key={`${chip.key}-${chip.value}`}
-                      type="button"
-                      className="inline-flex h-7 items-center gap-1 rounded-full border border-blue-100 bg-blue-50 px-2.5 text-[11px] font-semibold text-blue-700 transition hover:border-blue-200 hover:bg-blue-100"
-                      onClick={() => handleRemoveChip(chip.key, chip.value)}
-                    >
-                      {chip.label}
-                      <X size={12} />
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
+            {activeChips.length > 0 ? (
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {activeChips.map((chip) => (
+                  <button
+                    key={`${chip.key}-${chip.value}`}
+                    type="button"
+                    className="inline-flex h-7 items-center gap-1 rounded-full border border-blue-100 bg-blue-50 px-2.5 text-[11px] font-semibold text-blue-700 transition hover:border-blue-200 hover:bg-blue-100"
+                    onClick={() => handleRemoveChip(chip.key, chip.value)}
+                  >
+                    {chip.label}
+                    <X size={12} />
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             {isLoading && cars.length === 0 ? (
               <StatusMessage
@@ -569,7 +559,7 @@ function CarListPage() {
 
             {!error && cars.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
+                <div className="mt-3 grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
                   {paginatedCars.map((car) => (
                     <CarCard key={car._id} car={car} />
                   ))}
