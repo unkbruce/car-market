@@ -33,13 +33,6 @@ export const SAMPLE_CAR_IMAGES = [
     ],
   },
   {
-    id: 'hyundai-grand-starex-2012-white',
-    label: 'Hyundai Grand Starex 2012 White',
-    imageUrls: [
-      '/images/cars/hyundai-grand-starex-2012-white/hyundai-grand-starex-2012-white-front-3q.png',
-    ],
-  },
-  {
     id: 'hyundai-grandeur-2026-black',
     label: 'Hyundai Grandeur 2026 Black',
     imageUrls: [
@@ -102,20 +95,6 @@ export const SAMPLE_CAR_IMAGES = [
     ],
   },
   {
-    id: 'hyundai-starex-2005-silver',
-    label: 'Hyundai Starex 2005 Silver',
-    imageUrls: [
-      '/images/cars/hyundai-starex-2005-silver/hyundai-starex-2005-silver-front-3q.png',
-    ],
-  },
-  {
-    id: 'hyundai-staria-2024-dark-gray',
-    label: 'Hyundai Staria 2024 Dark Gray',
-    imageUrls: [
-      '/images/cars/hyundai-staria-2024-dark-gray/hyundai-staria-2024-dark-gray-front-3q.png',
-    ],
-  },
-  {
     id: 'hyundai-tucson-ix-2012-white',
     label: 'Hyundai Tucson Ix 2012 White',
     imageUrls: [
@@ -125,13 +104,6 @@ export const SAMPLE_CAR_IMAGES = [
       '/images/cars/hyundai-tucson-ix-2012-white/hyundai-tucson-ix-2012-white-rear-3q.png',
       '/images/cars/hyundai-tucson-ix-2012-white/hyundai-tucson-ix-2012-white-rear.png',
       '/images/cars/hyundai-tucson-ix-2012-white/hyundai-tucson-ix-2012-white-side-left.png',
-    ],
-  },
-  {
-    id: 'kia-carnival-2025-black',
-    label: 'Kia Carnival 2025 Black',
-    imageUrls: [
-      '/images/cars/kia-carnival-2025-black/kia-carnival-2025-black-front-3q.png',
     ],
   },
   {
@@ -171,13 +143,6 @@ export const SAMPLE_CAR_IMAGES = [
     ],
   },
   {
-    id: 'kia-k9-2022-black',
-    label: 'Kia K9 2022 Black',
-    imageUrls: [
-      '/images/cars/kia-k9-2022-black/kia-k9-2022-front-3q.png',
-    ],
-  },
-  {
     id: 'kia-morning-2018-ivory',
     label: 'Kia Morning 2018 Ivory',
     imageUrls: [
@@ -187,14 +152,6 @@ export const SAMPLE_CAR_IMAGES = [
       '/images/cars/kia-morning-2018-ivory/kia-morning-2018-ivory-rear-3q.png',
       '/images/cars/kia-morning-2018-ivory/kia-morning-2018-ivory-rear.png',
       '/images/cars/kia-morning-2018-ivory/kia-morning-2018-ivory-side-left.png',
-    ],
-  },
-  {
-    id: 'kia-niro-2017-black',
-    label: 'Kia Niro 2017 Black',
-    imageUrls: [
-      '/images/cars/kia-niro-2017-black/kia-niro-2017-black-front-3q.png',
-      '/images/cars/kia-niro-2017-black/kia-niro-2017-black-side-left.png',
     ],
   },
   {
