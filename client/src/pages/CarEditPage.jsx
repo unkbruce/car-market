@@ -7,14 +7,13 @@ import { useAuth } from '../context/AuthContext.jsx';
 import {
   Field,
   INITIAL_CAR_FORM,
-  LOCATION_OPTIONS,
   MAX_IMAGE_COUNT,
   getSelectClass,
   inputClass,
   selectPlaceholder,
   textareaClass,
 } from './CarNewPage.jsx';
-import { COMPANY_OPTIONS, FUEL_OPTIONS, TRANSMISSION_OPTIONS, TYPE_OPTIONS, getCanonicalOptionValue } from '../utils/carOptions.js';
+import { COMPANY_OPTIONS, FUEL_OPTIONS, LOCATION_OPTIONS, TRANSMISSION_OPTIONS, TYPE_OPTIONS, getCanonicalOptionValue } from '../utils/carOptions.js';
 
 function toFormValue(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -56,16 +55,24 @@ function getCarImageName(car, index) {
   return `기존 이미지 ${index + 1}`;
 }
 
-function SelectOptions({ options }) {
-  return options.map((option) => {
-    const item = typeof option === 'string' ? { label: option, value: option } : option;
+function SelectOptions({ options, currentValue = '' }) {
+  const normalizedOptions = options.map((option) => (typeof option === 'string' ? { label: option, value: option } : option));
+  const hasCurrentValue = currentValue && !normalizedOptions.some((option) => option.value === currentValue);
 
-    return (
-      <option className="text-slate-900" key={item.value} value={item.value}>
-        {item.label}
-      </option>
-    );
-  });
+  return (
+    <>
+      {hasCurrentValue ? (
+        <option className="text-slate-900" value={currentValue}>
+          {currentValue}
+        </option>
+      ) : null}
+      {normalizedOptions.map((option) => (
+        <option className="text-slate-900" key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </>
+  );
 }
 
 function CarEditPage() {
@@ -323,7 +330,7 @@ function CarEditPage() {
             <Field label="지역">
               <select className={getSelectClass(form.location)} name="location" value={form.location} onChange={handleChange}>
                 {selectPlaceholder}
-                <SelectOptions options={LOCATION_OPTIONS} />
+                <SelectOptions options={LOCATION_OPTIONS} currentValue={form.location} />
               </select>
             </Field>
 

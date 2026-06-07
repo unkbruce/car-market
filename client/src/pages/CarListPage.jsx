@@ -8,6 +8,7 @@ import {
   COMPANY_GROUPS,
   COMPANY_OPTIONS,
   FUEL_OPTIONS,
+  LOCATION_OPTIONS,
   TRANSMISSION_OPTIONS,
   TYPE_OPTIONS,
   getOptionLabel,
@@ -47,7 +48,6 @@ const INITIAL_COMPANY_GROUP_OPEN_SECTIONS = {
   imported: true,
 };
 
-const LOCATIONS = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '기타'];
 const OPTIONS = ['선루프', '내비게이션', '스마트키', '후방 카메라', '가죽시트', '에어백', '기타'];
 const CARS_PER_PAGE = 9;
 
@@ -466,7 +466,7 @@ function CarListPage() {
                   isOpen={openSections.location}
                   onToggle={() => handleSectionToggle('location')}
                 >
-                  <CheckboxList name="location" options={LOCATIONS} selectedValues={filters.location} onToggle={handleCheckboxToggle} />
+                  <CheckboxList name="location" options={LOCATION_OPTIONS} selectedValues={filters.location} onToggle={handleCheckboxToggle} />
                 </FilterSection>
 
                 <FilterSection title="연료" helper={filters.fuel.length ? `${filters.fuel.length}` : ''} isOpen={openSections.fuel} onToggle={() => handleSectionToggle('fuel')}>

@@ -5,7 +5,7 @@ import Header from '../components/Header.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { SAMPLE_CAR_IMAGES } from '../data/sampleCarImages.js';
-import { COMPANY_OPTIONS, FUEL_OPTIONS, TRANSMISSION_OPTIONS, TYPE_OPTIONS } from '../utils/carOptions.js';
+import { COMPANY_OPTIONS, FUEL_OPTIONS, LOCATION_OPTIONS, TRANSMISSION_OPTIONS, TYPE_OPTIONS } from '../utils/carOptions.js';
 
 export const INITIAL_CAR_FORM = {
   name: '',
@@ -32,7 +32,6 @@ export const selectPlaceholder = (
     선택해주세요
   </option>
 );
-export const LOCATION_OPTIONS = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '기타'];
 export const MAX_IMAGE_COUNT = 8;
 const IMAGE_INPUT_MODES = {
   sample: 'sample',

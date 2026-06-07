@@ -48,6 +48,26 @@ export const TYPE_OPTIONS = [
   '기타',
 ];
 
+export const LOCATION_OPTIONS = [
+  '서울',
+  '경기',
+  '인천',
+  '부산',
+  '대구',
+  '대전',
+  '광주',
+  '울산',
+  '세종',
+  '강원',
+  '충북',
+  '충남',
+  '전북',
+  '전남',
+  '경북',
+  '경남',
+  '제주',
+];
+
 export const FUEL_OPTIONS = [
   { label: '가솔린', value: 'gasoline', aliases: ['Gasoline'] },
   { label: '디젤', value: 'diesel', aliases: ['Diesel'] },
