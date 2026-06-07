@@ -263,4 +263,4 @@ export const SAMPLE_CAR_IMAGES = [
       '/images/cars/porsche-911-2024-silver/porsche-911-2024-silver-side-left.png',
     ],
   },
-];
+]

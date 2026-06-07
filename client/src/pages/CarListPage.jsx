@@ -49,6 +49,7 @@ const INITIAL_COMPANY_GROUP_OPEN_SECTIONS = {
 
 const LOCATIONS = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '기타'];
 const OPTIONS = ['선루프', '내비게이션', '스마트키', '후방 카메라', '가죽시트', '에어백', '기타'];
+const CARS_PER_PAGE = 9;
 
 const ARRAY_FILTERS = ['type', 'company', 'location', 'fuel', 'transmission'];
 const NUMBER_FILTERS = ['minPrice', 'maxPrice', 'minYear', 'maxYear', 'minMileage', 'maxMileage'];
@@ -109,6 +110,30 @@ function getChipLabel(key, value) {
   };
 
   return labels[key] || value;
+}
+
+function getCarTimestamp(car) {
+  const createdTime = car.createdAt ? new Date(car.createdAt).getTime() : 0;
+
+  if (Number.isFinite(createdTime) && createdTime > 0) {
+    return createdTime;
+  }
+
+  return car._id ? Number.parseInt(car._id.slice(0, 8), 16) : 0;
+}
+
+function sortCars(cars, sortOrder) {
+  return [...cars].sort((firstCar, secondCar) => {
+    if (sortOrder === 'priceLow') {
+      return Number(firstCar.price || 0) - Number(secondCar.price || 0);
+    }
+
+    if (sortOrder === 'priceHigh') {
+      return Number(secondCar.price || 0) - Number(firstCar.price || 0);
+    }
+
+    return getCarTimestamp(secondCar) - getCarTimestamp(firstCar);
+  });
 }
 
 function CompanyFilterGroups({ groupOpenSections, selectedValues, onGroupToggle, onToggle }) {
@@ -201,6 +226,8 @@ function CarListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState(INITIAL_FILTERS);
+  const [sortOrder, setSortOrder] = useState('latest');
+  const [currentPage, setCurrentPage] = useState(1);
   const [openSections, setOpenSections] = useState(INITIAL_OPEN_SECTIONS);
   const [companyGroupOpenSections, setCompanyGroupOpenSections] = useState(INITIAL_COMPANY_GROUP_OPEN_SECTIONS);
 
@@ -226,7 +253,24 @@ function CarListPage() {
     return chips;
   }, [filters]);
 
-  const totalCars = useMemo(() => cars.length, [cars]);
+  const sortedCars = useMemo(() => sortCars(cars, sortOrder), [cars, sortOrder]);
+  const totalCars = useMemo(() => sortedCars.length, [sortedCars]);
+  const totalPages = Math.max(1, Math.ceil(totalCars / CARS_PER_PAGE));
+  const paginatedCars = useMemo(() => {
+    const startIndex = (currentPage - 1) * CARS_PER_PAGE;
+
+    return sortedCars.slice(startIndex, startIndex + CARS_PER_PAGE);
+  }, [currentPage, sortedCars]);
+  const pageNumbers = useMemo(() => {
+    const visiblePageCount = Math.min(5, totalPages);
+    const halfVisiblePages = Math.floor(visiblePageCount / 2);
+    let startPage = Math.max(1, currentPage - halfVisiblePages);
+    const endPage = Math.min(totalPages, startPage + visiblePageCount - 1);
+
+    startPage = Math.max(1, endPage - visiblePageCount + 1);
+
+    return Array.from({ length: endPage - startPage + 1 }, (_, index) => startPage + index);
+  }, [currentPage, totalPages]);
   const inputClass =
     'h-8 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10';
 
@@ -267,9 +311,14 @@ function CarListPage() {
     };
   }, [filters]);
 
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
+
   function handleTextFilterChange(event) {
     const { name, value } = event.target;
 
+    setCurrentPage(1);
     setFilters((currentFilters) => ({
       ...currentFilters,
       [name]: value,
@@ -281,6 +330,7 @@ function CarListPage() {
       return;
     }
 
+    setCurrentPage(1);
     setFilters((currentFilters) => {
       const currentValues = currentFilters[name];
       const nextValues = currentValues.includes(value)
@@ -309,6 +359,7 @@ function CarListPage() {
   }
 
   function handleRemoveChip(key, value) {
+    setCurrentPage(1);
     setFilters((currentFilters) => {
       if (Array.isArray(currentFilters[key])) {
         return {
@@ -325,7 +376,13 @@ function CarListPage() {
   }
 
   function handleReset() {
+    setCurrentPage(1);
     setFilters(INITIAL_FILTERS);
+  }
+
+  function handleSortChange(event) {
+    setSortOrder(event.target.value);
+    setCurrentPage(1);
   }
 
   return (
@@ -455,7 +512,7 @@ function CarListPage() {
                     onChange={handleTextFilterChange}
                   />
                 </div>
-                <select className={inputClass} defaultValue="latest">
+                <select className={inputClass} value={sortOrder} onChange={handleSortChange}>
                   <option value="latest">최신순</option>
                   <option value="priceLow">낮은 가격순</option>
                   <option value="priceHigh">높은 가격순</option>
@@ -469,6 +526,7 @@ function CarListPage() {
                   <h2 className="text-lg font-bold tracking-tight text-slate-950">차량 목록</h2>
                   <p className="mt-0.5 text-xs text-slate-600">
                     총 {totalCars.toLocaleString('ko-KR')}대의 차량이 검색되었습니다.
+                    {totalCars > 0 ? ` ${currentPage}/${totalPages}페이지` : ''}
                   </p>
                 </div>
                 {isLoading ? <span className="text-xs font-medium text-blue-600">필터 적용 중...</span> : null}
@@ -510,11 +568,49 @@ function CarListPage() {
             ) : null}
 
             {!error && cars.length > 0 ? (
-              <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
-                {cars.map((car) => (
-                  <CarCard key={car._id} car={car} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
+                  {paginatedCars.map((car) => (
+                    <CarCard key={car._id} car={car} />
+                  ))}
+                </div>
+
+                <div className="mt-6 flex justify-center">
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
+                    <button
+                      type="button"
+                      className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      이전
+                    </button>
+                    {pageNumbers.map((page) => (
+                      <button
+                        key={page}
+                        type="button"
+                        className={`inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2 text-xs font-bold transition ${
+                          currentPage === page
+                            ? 'border-blue-600 bg-blue-600 text-white shadow-[0_4px_10px_rgba(37,99,235,0.18)]'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                        onClick={() => setCurrentPage(page)}
+                        aria-current={currentPage === page ? 'page' : undefined}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      다음
+                    </button>
+                  </div>
+                </div>
+              </>
             ) : null}
           </section>
         </div>
