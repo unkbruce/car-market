@@ -334,17 +334,45 @@ client/src/data/sampleCarImages.js
 3. `imageUrls`는 브라우저에서 접근 가능한 `/images/cars/...` 경로로 작성합니다.
 4. 한 차량당 최대 8장까지 선택될 수 있습니다.
 
+## 주요 화면
+
+### 차량 목록 및 필터
+
+차량 검색, 정렬, 제조사 및 조건별 필터, 반응형 차량 카드 화면을 확인할 수 있습니다.
+
+<img src="docs/screenshots/car-list.png" alt="차량 목록 및 필터 화면" width="900" />
+
+### 구매자 차량 상세
+
+차량 이미지 갤러리, 주요 스펙, 상세 설명, 상담하기 기능을 확인할 수 있습니다.
+
+<img src="docs/screenshots/car-detail-buyer.png" alt="구매자 차량 상세 화면" width="900" />
+
+### 딜러 차량 관리
+
+딜러가 본인 차량을 조회하고 수정·삭제할 수 있는 화면입니다.
+
+<img src="docs/screenshots/car-detail-dealer.png" alt="딜러 차량 관리 화면" width="900" />
+
+### 딜러 차량 등록
+
+차량 기본 정보와 상세 설명을 입력하는 화면입니다.
+
+<img src="docs/screenshots/car-register-form.png" alt="딜러 차량 등록 기본 정보 입력 화면" width="900" />
+
+직접 업로드 또는 샘플 이미지를 최대 8장까지 선택할 수 있습니다.
+
+<img src="docs/screenshots/car-register-images.png" alt="딜러 차량 등록 이미지 선택 화면" width="900" />
+
+### buyer/dealer 실시간 상담
+
+구매자와 딜러가 같은 상담방에서 실시간 메시지를 주고받는 화면입니다. 딜러 온라인 상태와 좌우로 구분된 메시지 UI를 확인할 수 있습니다.
+
+<img src="docs/screenshots/realtime-chat.png" alt="buyer와 dealer 실시간 상담 화면" width="900" />
+
 ## 구현 메모
 
 - 관리자 기능은 구현되어 있지 않습니다.
 - AI Agent는 구현 완료가 아니라 상담 처리 구조 분리와 확장 준비 상태입니다.
 - 검색, 정렬, 페이지네이션은 현재 프론트엔드 중심으로 동작합니다.
 - 서버 API 구조는 REST API와 Socket.io 이벤트를 함께 사용합니다.
-
-## 주요 화면
-
-- 차량 목록 및 필터
-- 차량 상세 및 이미지 갤러리
-- 딜러 차량 등록·수정
-- 상담방 목록
-- buyer/dealer 실시간 상담
