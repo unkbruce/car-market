@@ -15,8 +15,8 @@
 
 배포 주소:
 
-- Frontend: https://car-market-qxf3.onrender.com
-- Backend: https://car-market-server.onrender.com
+- Frontend: [https://car-market-qxf3.onrender.com](https://car-market-qxf3.onrender.com)
+- Backend: [https://car-market-server.onrender.com](https://car-market-server.onrender.com)
 
 ## 기술 스택
 
@@ -51,7 +51,7 @@ Deployment:
 인증 및 권한:
 
 - Firebase Authentication 기반 회원가입, 로그인, 로그아웃
-- 회원가입 시 `buyer` / `dealer` 권한 구분
+- 회원가입 시 `buyer` 또는 `dealer` 역할로 구분
 - MongoDB Atlas에 사용자 프로필 저장
 - 딜러는 본인이 등록한 차량만 수정/삭제 가능
 
@@ -67,7 +67,7 @@ Deployment:
 
 차량 등록/수정:
 
-- dealer 차량 등록, 수정, 삭제
+- 딜러 차량 등록, 수정, 삭제
 - 차량명, 제조사, 가격, 연식, 차종, 연료, 주행거리, 지역, 변속기, 외장 색상, 설명 입력
 - 외장 색상은 직접 입력 text field로 관리
 - 직접 파일 업로드와 샘플 이미지 선택 지원
@@ -91,7 +91,7 @@ Deployment:
 
 상담:
 
-- buyer/dealer 상담방 목록
+- 구매자/딜러 상담방 목록
 - 차량 카드 또는 상세페이지에서 상담방 생성/이동
 - Socket.io 기반 실시간 메시지
 - 메시지 MongoDB 저장
@@ -163,6 +163,14 @@ car-market/
 │       ├── app.js
 │       ├── server.js
 │       └── socket.js
+├── docs/
+│   └── screenshots/
+│       ├── car-list.png
+│       ├── car-detail-buyer.png
+│       ├── car-detail-dealer.png
+│       ├── car-register-form.png
+│       ├── car-register-images.png
+│       └── realtime-chat.png
 └── README.md
 ```
 
@@ -240,7 +248,7 @@ MongoDB Atlas 컬렉션:
 - `imageUrls`: 전체 이미지 URL 배열
 - `imageNames`: 이미지 파일명 배열
 
-샘플 이미지는 `client/public/images/cars/` 경로의 정적 파일 경로를 MongoDB에 문자열로 저장합니다. 직접 업로드 이미지는 Multer를 통해 서버에 저장하고 URL을 MongoDB에 저장합니다.
+샘플 이미지는 `client/public/images/cars/`의 프론트 정적 파일로 배포되어 유지되며, MongoDB에는 해당 정적 파일 경로를 문자열로 저장합니다. 직접 업로드 이미지는 Multer를 통해 Render 서버 로컬 파일 시스템에 저장하고, MongoDB에는 이미지 URL을 저장합니다.
 
 ## API 요약
 
@@ -314,8 +322,9 @@ Frontend:
 
 Render 무료 서버 주의:
 
-- 직접 업로드 이미지는 서버 로컬 파일 시스템에 저장됩니다.
-- Render 무료 환경에서는 재시작, 재배포, 인스턴스 교체 시 업로드 파일이 유지되지 않을 수 있습니다.
+- `client/public/images/cars/`의 샘플 이미지는 프론트 정적 파일로 배포되어 유지됩니다.
+- Multer로 직접 업로드한 이미지는 Render 서버 로컬 파일 시스템에 저장됩니다.
+- Render 무료 환경에서는 재배포, 재시작, 인스턴스 교체 시 직접 업로드 이미지가 사라질 수 있습니다.
 - 운영 환경에서는 S3, Cloudinary, Firebase Storage 같은 외부 스토리지 연동이 필요합니다.
 
 ## 샘플 이미지 관리
@@ -364,11 +373,11 @@ client/src/data/sampleCarImages.js
 
 <img src="docs/screenshots/car-register-images.png" alt="딜러 차량 등록 이미지 선택 화면" width="900" />
 
-### buyer/dealer 실시간 상담
+### 구매자/딜러 실시간 상담
 
 구매자와 딜러가 같은 상담방에서 실시간 메시지를 주고받는 화면입니다. 딜러 온라인 상태와 좌우로 구분된 메시지 UI를 확인할 수 있습니다.
 
-<img src="docs/screenshots/realtime-chat.png" alt="buyer와 dealer 실시간 상담 화면" width="900" />
+<img src="docs/screenshots/realtime-chat.png" alt="구매자와 딜러 실시간 상담 화면" width="900" />
 
 ## 구현 메모
 
