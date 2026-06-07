@@ -82,7 +82,7 @@ export async function saveMessageToRoom({ roomId, senderId, senderName, text }) 
 
 export async function createOrGetRoom(req, res) {
   try {
-    const { carId, buyerId, buyerName, dealerId } = req.body;
+    const { carId, buyerId, buyerName, dealerId, uid } = req.body;
 
     if (!carId || !buyerId || !dealerId) {
       return sendError(res, 400, 'carId, buyerId, and dealerId are required.');
@@ -91,6 +91,17 @@ export async function createOrGetRoom(req, res) {
     const roomId = buildRoomId(carId, buyerId, dealerId);
     const now = new Date();
     const car = ObjectId.isValid(carId) ? await getCarsCollection().findOne({ _id: new ObjectId(carId) }) : null;
+    const rejoinFields = {};
+    const requestUid = uid?.trim() || buyerId;
+
+    if (requestUid === buyerId) {
+      rejoinFields.leftByBuyer = false;
+    }
+
+    if (requestUid === dealerId) {
+      rejoinFields.leftByDealer = false;
+    }
+
     const result = await getChatRoomsCollection().findOneAndUpdate(
       { roomId },
       {
@@ -101,10 +112,13 @@ export async function createOrGetRoom(req, res) {
           carName: car?.name || req.body.carName || '',
           buyerName: buyerName?.trim() || req.body.buyerName || '',
           dealerName: car?.dealerName || req.body.dealerName || '',
+          ...rejoinFields,
           updatedAt: now,
         },
         $setOnInsert: {
           roomId,
+          leftByBuyer: false,
+          leftByDealer: false,
           createdAt: now,
         },
       },
@@ -133,7 +147,16 @@ export async function getMyRooms(req, res) {
 
     const rooms = await getChatRoomsCollection()
       .find({
-        $or: [{ buyerId: uid }, { dealerId: uid }],
+        $or: [
+          {
+            buyerId: uid,
+            leftByBuyer: { $ne: true },
+          },
+          {
+            dealerId: uid,
+            leftByDealer: { $ne: true },
+          },
+        ],
       })
       .sort({ updatedAt: -1 })
       .toArray();
@@ -141,6 +164,50 @@ export async function getMyRooms(req, res) {
     return res.json({
       success: true,
       data: rooms,
+    });
+  } catch (error) {
+    return sendError(res, 500, error.message);
+  }
+}
+
+export async function leaveRoom(req, res) {
+  try {
+    const { roomId } = req.params;
+    const uid = req.body.uid?.trim();
+
+    if (!uid) {
+      return sendError(res, 400, 'uid is required.');
+    }
+
+    const room = await getChatRoomsCollection().findOne({ roomId });
+
+    if (!room) {
+      return sendError(res, 404, 'Chat room not found.');
+    }
+
+    if (!isRoomParticipant(room, uid)) {
+      return sendError(res, 403, 'You can only leave your own chat room.');
+    }
+
+    const updateFields = {};
+
+    if (uid === room.buyerId) {
+      updateFields.leftByBuyer = true;
+    }
+
+    if (uid === room.dealerId) {
+      updateFields.leftByDealer = true;
+    }
+
+    const result = await getChatRoomsCollection().findOneAndUpdate(
+      { roomId },
+      { $set: updateFields },
+      { returnDocument: 'after' },
+    );
+
+    return res.json({
+      success: true,
+      data: result?.value || result,
     });
   } catch (error) {
     return sendError(res, 500, error.message);

@@ -31,6 +31,7 @@ function ChatListPage() {
   const { currentUser, profile, isAuthLoading } = useAuth();
   const [rooms, setRooms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [leavingRoomId, setLeavingRoomId] = useState('');
   const [error, setError] = useState('');
   const hasChatPermission = Boolean(currentUser && canUseChat(profile));
 
@@ -65,6 +66,30 @@ function ChatListPage() {
 
     fetchRooms();
   }, [currentUser, hasChatPermission, isAuthLoading]);
+
+  async function handleLeaveRoom(event, roomId) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!window.confirm('상담방을 나가시겠습니까? 기존 메시지는 유지됩니다.')) {
+      return;
+    }
+
+    try {
+      setLeavingRoomId(roomId);
+      setError('');
+
+      await api.patch(`/api/chats/rooms/${roomId}/leave`, {
+        uid: currentUser.uid,
+      });
+
+      setRooms((currentRooms) => currentRooms.filter((room) => room.roomId !== roomId));
+    } catch (leaveError) {
+      setError(leaveError.response?.data?.message || '상담방 나가기에 실패했습니다.');
+    } finally {
+      setLeavingRoomId('');
+    }
+  }
 
   if (isAuthLoading || isLoading) {
     return (
@@ -134,7 +159,7 @@ function ChatListPage() {
               <Link
                 key={room.roomId}
                 to={`/chats/${room.roomId}`}
-                className="flex items-center justify-between gap-4 border-b border-slate-100 px-4 py-4 transition last:border-b-0 hover:bg-slate-50 sm:px-5"
+                className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 transition last:border-b-0 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5"
               >
                 <div className="min-w-0">
                   <div className="flex min-w-0 items-center gap-2">
@@ -145,7 +170,17 @@ function ChatListPage() {
                   </div>
                   <p className="mt-1 truncate text-sm text-slate-500">{room.lastMessage || '아직 메시지가 없습니다.'}</p>
                 </div>
-                <p className="shrink-0 text-right text-xs font-semibold text-slate-400">{formatRoomTime(room.lastMessageAt || room.updatedAt)}</p>
+                <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+                  <p className="text-right text-xs font-semibold text-slate-400">{formatRoomTime(room.lastMessageAt || room.updatedAt)}</p>
+                  <button
+                    type="button"
+                    className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={(event) => handleLeaveRoom(event, room.roomId)}
+                    disabled={leavingRoomId === room.roomId}
+                  >
+                    {leavingRoomId === room.roomId ? '나가는 중' : '나가기'}
+                  </button>
+                </div>
               </Link>
             ))}
           </section>

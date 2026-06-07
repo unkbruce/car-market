@@ -12,6 +12,7 @@ async function createOrGetChatRoom({ car, currentUser, profile }) {
     dealerId: car.dealerId,
     dealerName: car.dealerName || '',
     carName: car.name || '',
+    uid: currentUser.uid,
   });
 
   return response.data.data;

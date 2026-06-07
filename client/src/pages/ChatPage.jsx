@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import api from '../api/api.js';
 import socket from '../api/socket.js';
 import Header from '../components/Header.jsx';
@@ -56,12 +56,14 @@ function getCounterpartLabel(room, currentUser, isDealerOnline) {
 
 function ChatPage() {
   const { roomId } = useParams();
+  const navigate = useNavigate();
   const { currentUser, profile, isAuthLoading } = useAuth();
   const [room, setRoom] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isLeavingRoom, setIsLeavingRoom] = useState(false);
   const [isDealerOnline, setIsDealerOnline] = useState(false);
   const [error, setError] = useState('');
   const messagesEndRef = useRef(null);
@@ -232,6 +234,27 @@ function ChatPage() {
     handleSubmit(event);
   }
 
+  async function handleLeaveRoom() {
+    if (!window.confirm('상담방을 나가시겠습니까? 기존 메시지는 유지됩니다.')) {
+      return;
+    }
+
+    try {
+      setIsLeavingRoom(true);
+      setError('');
+
+      await api.patch(`/api/chats/rooms/${roomId}/leave`, {
+        uid: currentUser.uid,
+      });
+
+      navigate('/chats');
+    } catch (leaveError) {
+      setError(leaveError.response?.data?.message || '상담방 나가기에 실패했습니다.');
+    } finally {
+      setIsLeavingRoom(false);
+    }
+  }
+
   if (isAuthLoading || isLoading) {
     return (
       <main className="min-h-screen bg-[#f8fafc]">
@@ -296,6 +319,14 @@ function ChatPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-500 ring-1 ring-slate-200">실시간 상담</span>
+            <button
+              type="button"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleLeaveRoom}
+              disabled={isLeavingRoom}
+            >
+              {isLeavingRoom ? '나가는 중' : '상담방 나가기'}
+            </button>
           </div>
         </div>
 
