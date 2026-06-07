@@ -218,6 +218,20 @@ function ChatPage() {
     }
   }
 
+  function handleMessageKeyDown(event) {
+    if (event.nativeEvent.isComposing || event.key !== 'Enter' || event.shiftKey) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (isSending || !messageText.trim()) {
+      return;
+    }
+
+    handleSubmit(event);
+  }
+
   if (isAuthLoading || isLoading) {
     return (
       <main className="min-h-screen bg-[#f8fafc]">
@@ -324,6 +338,7 @@ function ChatPage() {
               className="min-h-11 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
               value={messageText}
               onChange={(event) => setMessageText(event.target.value)}
+              onKeyDown={handleMessageKeyDown}
               placeholder="메시지를 입력하세요"
               rows={1}
             />
