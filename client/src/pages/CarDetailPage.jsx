@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../api/api.js';
 import Header from '../components/Header.jsx';
 import CarImagePlaceholder from '../components/CarImagePlaceholder.jsx';
@@ -41,27 +42,186 @@ function getCarImages(car) {
 function CarDetailImage({ car }) {
   const [hasImageError, setHasImageError] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isImageChanging, setIsImageChanging] = useState(false);
+  const [displayImage, setDisplayImage] = useState(() => getCarImages(car)[0] || '');
+  const [previousImage, setPreviousImage] = useState('');
+  const touchStartRef = useRef(null);
+  const fadeTimeoutRef = useRef(null);
   const images = getCarImages(car);
-  const selectedImage = images[selectedIndex] || images[0];
+  const hasMultipleImages = images.length > 1;
 
-  if (!selectedImage || hasImageError) {
+  useEffect(() => {
+    const firstImage = images[0] || '';
+
+    setSelectedIndex(0);
+    setDisplayImage(firstImage);
+    setPreviousImage('');
+    setHasImageError(false);
+  }, [car._id]);
+
+  useEffect(() => {
+    images.forEach((imageUrl) => {
+      const image = new Image();
+      image.src = imageUrl;
+    });
+  }, [car._id]);
+
+  useEffect(() => () => {
+    if (fadeTimeoutRef.current) {
+      window.clearTimeout(fadeTimeoutRef.current);
+    }
+  }, []);
+
+  function changeImage(nextIndex) {
+    if (!images.length) {
+      return;
+    }
+
+    const normalizedIndex = (nextIndex + images.length) % images.length;
+    const nextImage = images[normalizedIndex];
+
+    if (!nextImage || (normalizedIndex === selectedIndex && nextImage === displayImage)) {
+      return;
+    }
+
+    const commitImageChange = () => {
+      if (fadeTimeoutRef.current) {
+        window.clearTimeout(fadeTimeoutRef.current);
+      }
+
+      setPreviousImage(displayImage);
+      setDisplayImage(nextImage);
+      setSelectedIndex(normalizedIndex);
+      setHasImageError(false);
+      setIsImageChanging(true);
+
+      fadeTimeoutRef.current = window.setTimeout(() => {
+        setIsImageChanging(false);
+        setPreviousImage('');
+      }, 180);
+    };
+
+    const image = new Image();
+    image.onload = commitImageChange;
+    image.onerror = commitImageChange;
+    image.src = nextImage;
+  }
+
+  function handlePreviousImage() {
+    changeImage(selectedIndex - 1);
+  }
+
+  function handleNextImage() {
+    changeImage(selectedIndex + 1);
+  }
+
+  function handleKeyDown(event) {
+    if (!hasMultipleImages) {
+      return;
+    }
+
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      handlePreviousImage();
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      handleNextImage();
+    }
+  }
+
+  function handleTouchStart(event) {
+    const touch = event.touches[0];
+
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+    };
+  }
+
+  function handleTouchEnd(event) {
+    if (!hasMultipleImages || !touchStartRef.current) {
+      return;
+    }
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    const isHorizontalSwipe = Math.abs(deltaX) >= 48 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2;
+
+    touchStartRef.current = null;
+
+    if (!isHorizontalSwipe) {
+      return;
+    }
+
+    if (deltaX > 0) {
+      handlePreviousImage();
+      return;
+    }
+
+    handleNextImage();
+  }
+
+  if (!displayImage || hasImageError) {
     return <CarImagePlaceholder company={car.company} name={car.name} large />;
   }
 
   return (
-    <div>
-      <div className="relative flex aspect-[4/3] min-h-[260px] items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.05)] sm:min-h-[360px] lg:min-h-[420px]">
+    <div onKeyDown={handleKeyDown}>
+      <div
+        className="relative flex aspect-[4/3] min-h-[260px] touch-pan-y items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.05)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 sm:min-h-[360px] lg:min-h-[420px]"
+        tabIndex={hasMultipleImages ? 0 : undefined}
+        role={hasMultipleImages ? 'region' : undefined}
+        aria-label={hasMultipleImages ? '차량 이미지 갤러리' : undefined}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {previousImage ? (
+          <img
+            src={previousImage}
+            alt=""
+            aria-hidden="true"
+            className={`absolute inset-0 h-full w-full object-contain object-center transition-opacity duration-200 ${
+              isImageChanging ? 'opacity-0' : 'opacity-100'
+            }`}
+          />
+        ) : null}
         <img
-          src={selectedImage}
+          src={displayImage}
           alt={car.name || '차량 이미지'}
-          className="h-full w-full object-contain object-center"
+          className={`absolute inset-0 h-full w-full object-contain object-center transition-opacity duration-200 ${
+            isImageChanging && previousImage ? 'opacity-100' : 'opacity-100'
+          }`}
           onError={() => {
             setHasImageError(true);
           }}
         />
+
+        {hasMultipleImages ? (
+          <>
+            <button
+              type="button"
+              className="absolute bottom-5 left-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-950/35 text-white shadow-sm transition hover:bg-slate-950/55 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900/20 sm:left-4"
+              onClick={handlePreviousImage}
+              aria-label="이전 이미지"
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <button
+              type="button"
+              className="absolute bottom-5 right-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-950/35 text-white shadow-sm transition hover:bg-slate-950/55 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900/20 sm:right-4"
+              onClick={handleNextImage}
+              aria-label="다음 이미지"
+            >
+              <ChevronRight size={24} />
+            </button>
+          </>
+        ) : null}
       </div>
 
-      {images.length > 1 ? (
+      {hasMultipleImages ? (
         <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6">
           {images.map((imageUrl, index) => (
             <button
@@ -71,8 +231,7 @@ function CarDetailImage({ car }) {
                 selectedIndex === index ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-blue-200'
               }`}
               onClick={() => {
-                setSelectedIndex(index);
-                setHasImageError(false);
+                changeImage(index);
               }}
             >
               <img src={imageUrl} alt={`${car.name || '차량 이미지'} ${index + 1}`} className="h-full w-full object-contain object-center" />
