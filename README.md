@@ -74,7 +74,9 @@ Deployment:
 - 등록/수정 화면 모두 샘플 이미지 선택 가능
 - `client/public/images/cars/`의 샘플 이미지 사용
 - `client/src/data/sampleCarImages.js`에서 샘플 이미지 목록 관리
-- 기존 이미지, 새 업로드 이미지, 샘플 이미지 합산 최대 8장 관리
+- 차량 등록 및 수정 시 최소 1장 이상의 이미지 필요
+- 기존 이미지, 직접 업로드 이미지, 샘플 이미지를 합산해 검증
+- 최종 이미지 수는 최소 1장, 최대 8장
 - 이미지 개별 추가/삭제
 - 샘플 이미지는 클릭 순서대로 선택되고 `imageUrls` 배열에 저장
 - 첫 번째 이미지를 대표 이미지 `imageUrl`로 저장
@@ -107,6 +109,16 @@ AI Agent 확장:
 
 - AI 자동응답은 구현 완료 상태가 아닙니다.
 - 상담 메시지 처리 구조를 `server/src/services/chatMessageHandler.js`로 분리해 AI Agent 확장을 준비했습니다.
+
+## 프로젝트 문서
+
+| 문서 | Markdown | PDF |
+|---|---|---|
+| 요구사항 정의서 | [보기](./docs/requirements/requirements.md) | [보기](./docs/requirements/requirements.pdf) |
+| 와이어프레임 | [보기](./docs/wireframes/wireframes.md) | [보기](./docs/wireframes/wireframes.pdf) |
+
+- 요구사항 정의서에는 기능 요구사항, 화면·데이터·API 요구사항, 비기능 요구사항과 구현 범위를 정리했습니다.
+- 와이어프레임에는 구매자와 딜러의 주요 화면 구조, 사용자 흐름, 반응형 동작을 정리했습니다.
 
 ## 프로젝트 구조
 
@@ -168,6 +180,14 @@ car-market/
 │       ├── server.js
 │       └── socket.js
 ├── docs/
+│   ├── requirements/
+│   │   ├── requirements.md
+│   │   ├── requirements.html
+│   │   └── requirements.pdf
+│   ├── wireframes/
+│   │   ├── wireframes.md
+│   │   ├── wireframes.html
+│   │   └── wireframes.pdf
 │   └── screenshots/
 │       ├── car-list.png
 │       ├── car-detail-buyer.png
@@ -376,7 +396,7 @@ client/src/data/sampleCarImages.js
 
 <img src="docs/screenshots/car-register-form.png" alt="딜러 차량 등록 기본 정보 입력 화면" width="900" />
 
-직접 업로드 또는 샘플 이미지를 최대 8장까지 선택할 수 있습니다.
+직접 업로드 또는 샘플 이미지를 최소 1장, 최대 8장까지 선택할 수 있습니다.
 
 <img src="docs/screenshots/car-register-images.png" alt="딜러 차량 등록 이미지 선택 화면" width="900" />
 
