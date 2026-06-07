@@ -5,6 +5,7 @@ const CARS_COLLECTION = 'cars';
 const NUMERIC_FIELDS = ['price', 'year', 'mileage'];
 const REQUIRED_FIELDS = ['name', 'company', 'price', 'year'];
 const SEARCH_NUMERIC_FIELDS = ['minPrice', 'maxPrice', 'minYear', 'maxYear', 'minMileage', 'maxMileage'];
+const MIN_IMAGE_ERROR_MESSAGE = '차량 이미지를 최소 1장 이상 선택해주세요.';
 
 function getCarsCollection() {
   return getDB().collection(CARS_COLLECTION);
@@ -56,6 +57,12 @@ function validateCarPayload(carData, prefix = '') {
 
   if (hasInvalidNumericFields(carData)) {
     throw createRequestError(400, `${prefix}price, year, and mileage must be numbers.`);
+  }
+}
+
+function validateCarImages(imageUrls) {
+  if (!Array.isArray(imageUrls) || imageUrls.length === 0) {
+    throw createRequestError(400, MIN_IMAGE_ERROR_MESSAGE);
   }
 }
 
@@ -394,6 +401,7 @@ export async function createCar(req, res) {
     }));
     delete carData.sampleImageUrls;
     validateCarPayload(carData);
+    validateCarImages(carData.imageUrls);
 
     const newCar = buildCarDocument(carData, now);
 
@@ -464,6 +472,8 @@ export async function updateCar(req, res) {
     if (hasInvalidNumericFields(carData)) {
       return sendError(res, 400, 'price, year, and mileage must be numbers.');
     }
+
+    validateCarImages(nextImageUrls);
 
     const updateData = {
       ...carData,

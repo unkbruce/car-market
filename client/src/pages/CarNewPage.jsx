@@ -33,6 +33,7 @@ export const selectPlaceholder = (
   </option>
 );
 export const MAX_IMAGE_COUNT = 8;
+export const MIN_IMAGE_ERROR_MESSAGE = '차량 이미지를 최소 1장 이상 선택해주세요.';
 export const IMAGE_INPUT_MODES = {
   sample: 'sample',
   upload: 'upload',
@@ -339,6 +340,11 @@ function CarNewPage() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    if (selectedImages.length + selectedSampleImageUrls.length === 0) {
+      setError(MIN_IMAGE_ERROR_MESSAGE);
+      return;
+    }
 
     try {
       setIsSubmitting(true);

@@ -1,0 +1,1047 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>실시간 Car Market 와이어프레임</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 16mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #f3f4f6;
+      color: #111827;
+      font-family: Arial, "Noto Sans KR", sans-serif;
+      line-height: 1.55;
+    }
+
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #ffffff;
+    }
+
+    section {
+      padding: 32px;
+      border-bottom: 1px solid #d1d5db;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .page {
+      min-height: 980px;
+      page-break-after: always;
+      break-after: page;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      line-height: 1.25;
+    }
+
+    h1 {
+      font-size: 30px;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: 22px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #111827;
+    }
+
+    h3 {
+      font-size: 17px;
+      margin: 20px 0 10px;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      border: 1px solid #d1d5db;
+      padding: 9px;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f3f4f6;
+      font-weight: 700;
+    }
+
+    ul,
+    ol {
+      margin: 8px 0 16px;
+      padding-left: 22px;
+    }
+
+    .muted {
+      color: #4b5563;
+      font-size: 14px;
+    }
+
+    .cover {
+      display: flex;
+      min-height: 980px;
+      flex-direction: column;
+      justify-content: center;
+      border-bottom: 0;
+    }
+
+    .cover .meta {
+      margin-top: 32px;
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 8px 14px;
+      font-size: 15px;
+    }
+
+    .flow {
+      display: grid;
+      gap: 10px;
+      margin: 14px 0 20px;
+    }
+
+    .flow-row {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .role {
+      padding: 10px;
+      border: 1px solid #9ca3af;
+      background: #f9fafb;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .flow-steps {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .step {
+      padding: 8px 10px;
+      border: 1px solid #9ca3af;
+      background: #ffffff;
+      font-size: 13px;
+    }
+
+    .arrow {
+      color: #6b7280;
+      font-weight: 700;
+    }
+
+    .wireframe {
+      margin-top: 14px;
+      border: 2px solid #111827;
+      background: #ffffff;
+      padding: 12px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid #9ca3af;
+      background: #f9fafb;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+
+    .logo,
+    .nav,
+    .user {
+      border: 1px solid #9ca3af;
+      background: #ffffff;
+      padding: 8px;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .logo {
+      min-width: 160px;
+      font-weight: 700;
+    }
+
+    .nav {
+      flex: 1;
+    }
+
+    .user {
+      min-width: 150px;
+    }
+
+    .box {
+      border: 1px solid #9ca3af;
+      background: #f9fafb;
+      padding: 10px;
+      min-height: 38px;
+      font-size: 13px;
+    }
+
+    .box.white {
+      background: #ffffff;
+    }
+
+    .box.center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .box.dark {
+      background: #e5e7eb;
+      font-weight: 700;
+    }
+
+    .button {
+      border: 1px solid #111827;
+      background: #e5e7eb;
+      padding: 9px 12px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .button.light {
+      background: #ffffff;
+      color: #111827;
+    }
+
+    .input {
+      border: 1px solid #9ca3af;
+      background: #ffffff;
+      padding: 9px;
+      font-size: 13px;
+      min-height: 38px;
+    }
+
+    .form-card {
+      max-width: 420px;
+      margin: 0 auto;
+      border: 1px solid #9ca3af;
+      background: #f9fafb;
+      padding: 18px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 14px;
+    }
+
+    .list-layout {
+      display: grid;
+      grid-template-columns: 230px 1fr;
+      gap: 14px;
+    }
+
+    .filter-panel {
+      display: grid;
+      gap: 8px;
+      border: 1px solid #9ca3af;
+      background: #f9fafb;
+      padding: 10px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr 160px;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .car-card {
+      border: 1px solid #9ca3af;
+      background: #ffffff;
+      padding: 8px;
+      display: grid;
+      gap: 7px;
+    }
+
+    .image {
+      min-height: 130px;
+      border: 1px dashed #6b7280;
+      background: #f3f4f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .main-image {
+      min-height: 330px;
+      position: relative;
+    }
+
+    .arrow-btn {
+      position: absolute;
+      bottom: 16px;
+      width: 38px;
+      height: 38px;
+      border: 1px solid #111827;
+      border-radius: 50%;
+      background: #d1d5db;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    .arrow-left {
+      left: 16px;
+    }
+
+    .arrow-right {
+      right: 16px;
+    }
+
+    .thumbs {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .thumb {
+      min-height: 54px;
+      border: 1px dashed #6b7280;
+      background: #f3f4f6;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .summary-card,
+    .spec-card,
+    .desc-card {
+      border: 1px solid #9ca3af;
+      background: #f9fafb;
+      padding: 12px;
+      display: grid;
+      gap: 9px;
+    }
+
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .form-wide {
+      border: 1px solid #9ca3af;
+      background: #f9fafb;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .fields-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .sample-layout {
+      display: grid;
+      gap: 10px;
+    }
+
+    .sample-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      border: 1px solid #9ca3af;
+      background: #ffffff;
+      padding: 8px;
+    }
+
+    .selected-images {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .chat-list-item {
+      display: grid;
+      grid-template-columns: 1fr 120px 100px;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid #9ca3af;
+      background: #ffffff;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+
+    .chat-area {
+      display: grid;
+      gap: 10px;
+      border: 1px solid #9ca3af;
+      background: #f9fafb;
+      padding: 12px;
+    }
+
+    .messages {
+      min-height: 360px;
+      border: 1px solid #9ca3af;
+      background: #ffffff;
+      padding: 12px;
+      display: grid;
+      align-content: start;
+      gap: 10px;
+    }
+
+    .message {
+      max-width: 60%;
+      border: 1px solid #9ca3af;
+      background: #f3f4f6;
+      padding: 8px;
+      font-size: 13px;
+    }
+
+    .message.mine {
+      justify-self: end;
+      background: #e5e7eb;
+    }
+
+    .message.other {
+      justify-self: start;
+      background: #ffffff;
+    }
+
+    .chat-input {
+      display: grid;
+      grid-template-columns: 1fr 100px;
+      gap: 10px;
+    }
+
+    .note {
+      margin-top: 12px;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+      font-size: 13px;
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+      }
+
+      main {
+        max-width: none;
+      }
+
+      section {
+        padding: 0;
+        border-bottom: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="cover page">
+      <h1>실시간 Car Market 와이어프레임</h1>
+      <p class="muted">완성된 서비스와 요구사항 정의서를 기준으로 작성한 제출용 화면 구조 문서</p>
+      <div class="meta">
+        <strong>서비스명</strong><span>실시간 Car Market</span>
+        <strong>문서 목적</strong><span>실제 구현 화면의 구조와 사용자 흐름 설명</span>
+        <strong>작성 기준</strong><span>React/Vite 클라이언트, Express 서버, MongoDB Atlas, Firebase Authentication, Socket.io</span>
+        <strong>작성 형식</strong><span>저충실도 와이어프레임, A4 PDF 변환용 HTML</span>
+      </div>
+    </section>
+
+    <section class="page">
+      <h2>1. 와이어프레임 개요</h2>
+      <p>본 문서는 완성된 실시간 Car Market 서비스의 화면 구조와 주요 인터랙션을 설명한다. 실제 브랜드 색상이나 완성 UI를 재현하기보다, 입력창, 버튼, 카드, 이미지 영역, 목록 구조를 단순 도형과 한글 라벨로 표현한다.</p>
+
+      <h3>작성 원칙</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>항목</th>
+            <th>내용</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>표현 수준</td>
+            <td>흰색, 회색, 검정 중심의 저충실도 와이어프레임</td>
+          </tr>
+          <tr>
+            <td>기준 화면</td>
+            <td>PC 화면을 기본으로 작성</td>
+          </tr>
+          <tr>
+            <td>반응형</td>
+            <td>모바일과 태블릿에서는 주요 영역이 세로 배치되도록 설명</td>
+          </tr>
+          <tr>
+            <td>제외 범위</td>
+            <td>관리자 화면은 미구현이므로 포함하지 않음</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>2. 사용자 흐름</h2>
+      <div class="flow">
+        <div class="flow-row">
+          <div class="role">구매자</div>
+          <div class="flow-steps">
+            <span class="step">로그인</span><span class="arrow">→</span>
+            <span class="step">차량 검색</span><span class="arrow">→</span>
+            <span class="step">상세 조회</span><span class="arrow">→</span>
+            <span class="step">상담 요청</span><span class="arrow">→</span>
+            <span class="step">실시간 상담</span><span class="arrow">→</span>
+            <span class="step">상담방 나가기</span>
+          </div>
+        </div>
+        <div class="flow-row">
+          <div class="role">딜러</div>
+          <div class="flow-steps">
+            <span class="step">로그인</span><span class="arrow">→</span>
+            <span class="step">차량 등록</span><span class="arrow">→</span>
+            <span class="step">차량 관리</span><span class="arrow">→</span>
+            <span class="step">상담 응답</span><span class="arrow">→</span>
+            <span class="step">상담방 나가기</span>
+          </div>
+        </div>
+        <div class="flow-row">
+          <div class="role">재상담</div>
+          <div class="flow-steps">
+            <span class="step">상담방 나가기</span><span class="arrow">→</span>
+            <span class="step">목록에서 숨김</span><span class="arrow">→</span>
+            <span class="step">같은 차량 상담하기</span><span class="arrow">→</span>
+            <span class="step">기존 상담방 재활성화</span>
+          </div>
+        </div>
+      </div>
+
+      <h2>3. 화면 목록</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>번호</th>
+            <th>화면</th>
+            <th>주요 목적</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>WF-01</td><td>로그인</td><td>사용자 인증</td></tr>
+          <tr><td>WF-02</td><td>회원가입</td><td>계정 생성 및 구매자/딜러 역할 선택</td></tr>
+          <tr><td>WF-03</td><td>차량 목록</td><td>검색, 필터, 정렬, 페이지네이션, 상담 진입</td></tr>
+          <tr><td>WF-04</td><td>구매자 차량 상세</td><td>차량 정보 확인 및 상담 요청</td></tr>
+          <tr><td>WF-05</td><td>딜러 차량 상세</td><td>본인 차량 관리</td></tr>
+          <tr><td>WF-06</td><td>차량 등록</td><td>딜러 차량 정보 및 이미지 등록</td></tr>
+          <tr><td>WF-07</td><td>차량 수정</td><td>기존 차량 정보 및 이미지 수정</td></tr>
+          <tr><td>WF-08</td><td>상담방 목록</td><td>상담방 확인, 입장, 나가기</td></tr>
+          <tr><td>WF-09</td><td>실시간 상담</td><td>메시지 송수신 및 상담방 나가기</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="page">
+      <h2>WF-01. 로그인</h2>
+      <div class="wireframe">
+        <div class="header">
+          <div class="logo">실시간 Car Market</div>
+          <div class="nav">차량 목록</div>
+          <div class="user">로그인 / 회원가입</div>
+        </div>
+        <div class="form-card">
+          <div class="box center dark">로그인</div>
+          <div class="form-grid">
+            <div class="input">이메일</div>
+            <div class="input">비밀번호</div>
+            <div class="button">로그인 버튼</div>
+            <div class="box center white">회원가입 이동 링크</div>
+          </div>
+        </div>
+      </div>
+      <h3>주요 구성 요소</h3>
+      <table>
+        <tr><th>요소</th><th>설명</th></tr>
+        <tr><td>이메일/비밀번호</td><td>Firebase Authentication 로그인에 필요한 입력값</td></tr>
+        <tr><td>로그인 버튼</td><td>로그인 성공 시 차량 목록 또는 이전 흐름으로 이동</td></tr>
+        <tr><td>회원가입 이동</td><td>계정이 없는 사용자를 회원가입 화면으로 안내</td></tr>
+      </table>
+    </section>
+
+    <section class="page">
+      <h2>WF-02. 회원가입</h2>
+      <div class="wireframe">
+        <div class="header">
+          <div class="logo">실시간 Car Market</div>
+          <div class="nav">차량 목록</div>
+          <div class="user">로그인 / 회원가입</div>
+        </div>
+        <div class="form-card">
+          <div class="box center dark">회원가입</div>
+          <div class="form-grid">
+            <div class="input">이름</div>
+            <div class="input">이메일</div>
+            <div class="input">비밀번호</div>
+            <div class="box white">역할 선택: 구매자 / 딜러</div>
+            <div class="button">회원가입 버튼</div>
+          </div>
+        </div>
+      </div>
+      <h3>주요 구성 요소</h3>
+      <table>
+        <tr><th>요소</th><th>설명</th></tr>
+        <tr><td>역할 선택</td><td>회원가입 시 `buyer` 또는 `dealer` 역할을 선택한다.</td></tr>
+        <tr><td>회원가입 버튼</td><td>Firebase 계정 생성 후 MongoDB 사용자 프로필을 저장한다.</td></tr>
+      </table>
+    </section>
+
+    <section class="page">
+      <h2>WF-03. 차량 목록</h2>
+      <div class="wireframe">
+        <div class="header">
+          <div class="logo">실시간 Car Market</div>
+          <div class="nav">차량 목록 / 차량 등록 / 상담 목록</div>
+          <div class="user">사용자명 / 로그아웃</div>
+        </div>
+        <div class="list-layout">
+          <aside class="filter-panel">
+            <div class="box dark">차량 조건 | 11대 | 초기화</div>
+            <div class="box">차종 필터</div>
+            <div class="box">제조사 그룹: 국산차 / 수입차</div>
+            <div class="box">연식</div>
+            <div class="box">주행거리</div>
+            <div class="box">가격</div>
+            <div class="box">지역</div>
+            <div class="box">연료</div>
+            <div class="box">변속기</div>
+          </aside>
+          <div>
+            <div class="toolbar">
+              <div class="input">차량명 검색</div>
+              <div class="input">정렬 선택</div>
+            </div>
+            <div class="cards-grid">
+              <div class="car-card">
+                <div class="image">차량 이미지</div>
+                <div class="box white">차량명</div>
+                <div class="box white">제조사 / 연식 / 주행거리</div>
+                <div class="box white">가격</div>
+                <div class="button">상담하기</div>
+              </div>
+              <div class="car-card"><div class="image">차량 이미지</div><div class="box white">차량 카드</div><div class="button">상담하기</div></div>
+              <div class="car-card"><div class="image">차량 이미지</div><div class="box white">차량 카드</div><div class="button">상담하기</div></div>
+              <div class="car-card"><div class="image">차량 이미지</div><div class="box white">차량 카드</div><div class="button">상담하기</div></div>
+              <div class="car-card"><div class="image">차량 이미지</div><div class="box white">차량 카드</div><div class="button">상담하기</div></div>
+              <div class="car-card"><div class="image">차량 이미지</div><div class="box white">차량 카드</div><div class="button">상담하기</div></div>
+            </div>
+            <div class="box center" style="margin-top: 12px;">이전 | 1 | 2 | 3 | 다음</div>
+          </div>
+        </div>
+      </div>
+      <h3>주요 구성 요소</h3>
+      <table>
+        <tr><th>요소</th><th>설명</th></tr>
+        <tr><td>왼쪽 조건 필터</td><td>현재 조건에 맞는 차량 수와 초기화 버튼, 조건별 필터를 표시한다.</td></tr>
+        <tr><td>차량 카드</td><td>카드 전체 클릭 시 상세페이지로 이동하고, 상담하기 버튼은 상담방 생성 흐름을 실행한다.</td></tr>
+        <tr><td>페이지네이션</td><td>검색/필터 결과를 9개 단위로 표시한다.</td></tr>
+      </table>
+    </section>
+
+    <section class="page">
+      <h2>WF-04. 구매자 차량 상세</h2>
+      <div class="wireframe">
+        <div class="header">
+          <div class="logo">실시간 Car Market</div>
+          <div class="nav">차량 목록 / 상담 목록</div>
+          <div class="user">구매자 / 로그아웃</div>
+        </div>
+        <div class="two-col">
+          <div>
+            <div class="image main-image">
+              메인 이미지
+              <div class="arrow-btn arrow-left">←</div>
+              <div class="arrow-btn arrow-right">→</div>
+            </div>
+            <div class="thumbs">
+              <div class="thumb">썸네일</div>
+              <div class="thumb">썸네일</div>
+              <div class="thumb">썸네일</div>
+              <div class="thumb">썸네일</div>
+              <div class="thumb">썸네일</div>
+              <div class="thumb">썸네일</div>
+            </div>
+            <div class="spec-card" style="margin-top: 12px;">
+              <div class="box dark">주요 스펙</div>
+              <div class="spec-grid">
+                <div class="box">제조사</div><div class="box">연식</div><div class="box">차종</div><div class="box">연료</div>
+                <div class="box">변속기</div><div class="box">주행거리</div><div class="box">지역</div><div class="box">색상</div>
+              </div>
+            </div>
+            <div class="desc-card" style="margin-top: 12px;">
+              <div class="box dark">상세 설명</div>
+              <div class="box white">차량 상태, 정비 이력, 특이사항</div>
+            </div>
+          </div>
+          <aside class="summary-card">
+            <div class="box dark">차량 요약 카드</div>
+            <div class="box white">차량명 / 제조사</div>
+            <div class="box white">판매가</div>
+            <div class="box white">연식 / 주행거리 / 지역</div>
+            <div class="box white">담당 딜러</div>
+            <div class="button">상담하기</div>
+            <div class="button light">목록으로 돌아가기</div>
+          </aside>
+        </div>
+      </div>
+      <h3>주요 구성 요소</h3>
+      <table>
+        <tr><th>요소</th><th>설명</th></tr>
+        <tr><td>이미지 갤러리</td><td>화살표, 썸네일, 키보드 방향키, 모바일 스와이프로 이미지 이동</td></tr>
+        <tr><td>차량 요약 카드</td><td>구매자에게 담당 딜러와 상담하기 버튼을 제공</td></tr>
+        <tr><td>주요 스펙</td><td>4열 구조로 차량 핵심 정보를 표시하고 빈 값은 `-`로 표시</td></tr>
+      </table>
+    </section>
+
+    <section class="page">
+      <h2>WF-05. 딜러 차량 상세</h2>
+      <div class="wireframe">
+        <div class="header">
+          <div class="logo">실시간 Car Market</div>
+          <div class="nav">차량 목록 / 차량 등록 / 상담 목록</div>
+          <div class="user">딜러 / 로그아웃</div>
+        </div>
+        <div class="two-col">
+          <div>
+            <div class="image main-image">
+              메인 이미지
+              <div class="arrow-btn arrow-left">←</div>
+              <div class="arrow-btn arrow-right">→</div>
+            </div>
+            <div class="thumbs">
+              <div class="thumb">썸네일</div><div class="thumb">썸네일</div><div class="thumb">썸네일</div>
+              <div class="thumb">썸네일</div><div class="thumb">썸네일</div><div class="thumb">썸네일</div>
+            </div>
+            <div class="spec-card" style="margin-top: 12px;">
+              <div class="box dark">주요 스펙</div>
+              <div class="spec-grid">
+                <div class="box">제조사</div><div class="box">연식</div><div class="box">차종</div><div class="box">연료</div>
+                <div class="box">변속기</div><div class="box">주행거리</div><div class="box">지역</div><div class="box">색상</div>
+              </div>
+            </div>
+            <div class="desc-card" style="margin-top: 12px;">
+              <div class="box dark">상세 설명</div>
+              <div class="box white">차량 설명</div>
+            </div>
+          </div>
+          <aside class="summary-card">
+            <div class="box dark">차량 요약 카드</div>
+            <div class="box white">차량명 / 가격</div>
+            <div class="box white">등록 딜러</div>
+            <div class="button">수정</div>
+            <div class="button">삭제</div>
+            <div class="button light">목록으로 돌아가기</div>
+          </aside>
+        </div>
+      </div>
+      <h3>구매자 화면과 차이</h3>
+      <table>
+        <tr><th>항목</th><th>구매자 화면</th><th>딜러 본인 화면</th></tr>
+        <tr><td>상담 버튼</td><td>상담하기 표시</td><td>숨김</td></tr>
+        <tr><td>관리 버튼</td><td>없음</td><td>수정 / 삭제 표시</td></tr>
+        <tr><td>딜러 라벨</td><td>담당 딜러</td><td>등록 딜러</td></tr>
+      </table>
+    </section>
+
+    <section class="page">
+      <h2>WF-06. 차량 등록</h2>
+      <div class="wireframe">
+        <div class="header">
+          <div class="logo">실시간 Car Market</div>
+          <div class="nav">차량 목록 / 차량 등록 / 상담 목록</div>
+          <div class="user">딜러 / 로그아웃</div>
+        </div>
+        <div class="form-wide">
+          <div class="box dark">차량 정보 입력 폼</div>
+          <div class="fields-2">
+            <div class="input">차량명</div><div class="input">제조사</div>
+            <div class="input">가격</div><div class="input">연식</div>
+            <div class="input">차종</div><div class="input">연료</div>
+            <div class="input">주행거리</div><div class="input">지역</div>
+            <div class="input">변속기</div><div class="input">외장 색상</div>
+          </div>
+          <div class="input" style="min-height: 90px;">설명</div>
+          <div class="tabs">
+            <div class="button">직접 업로드</div>
+            <div class="button light">샘플 이미지 선택</div>
+          </div>
+          <div class="sample-layout">
+            <div class="sample-cards">
+              <div class="car-card"><div class="image">샘플 차량</div><div class="box white">차량명 / 이미지 수</div></div>
+              <div class="car-card"><div class="image">샘플 차량</div><div class="box white">차량명 / 이미지 수</div></div>
+              <div class="car-card"><div class="image">샘플 차량</div><div class="box white">차량명 / 이미지 수</div></div>
+              <div class="car-card"><div class="image">샘플 차량</div><div class="box white">차량명 / 이미지 수</div></div>
+              <div class="car-card"><div class="image">샘플 차량</div><div class="box white">차량명 / 이미지 수</div></div>
+              <div class="car-card"><div class="image">샘플 차량</div><div class="box white">차량명 / 이미지 수</div></div>
+            </div>
+            <div class="selected-images">
+              <div class="box center">선택 이미지 1</div>
+              <div class="box center">선택 이미지 2</div>
+              <div class="box center">선택 이미지 3</div>
+              <div class="box center">선택 이미지 4</div>
+            </div>
+          </div>
+          <div class="fields-2">
+            <div class="button light">취소</div>
+            <div class="button">차량 등록</div>
+          </div>
+        </div>
+      </div>
+      <h3>주요 구성 요소</h3>
+      <table>
+        <tr><th>요소</th><th>설명</th></tr>
+        <tr><td>직접 업로드</td><td>파일 선택 input으로 이미지 업로드</td></tr>
+        <tr><td>샘플 이미지 선택</td><td>샘플 차량 목록에서 이미지를 클릭 순서대로 선택</td></tr>
+        <tr><td>선택 이미지 목록</td><td>최대 8장까지 순번과 함께 표시</td></tr>
+      </table>
+    </section>
+
+    <section class="page">
+      <h2>WF-07. 차량 수정</h2>
+      <div class="wireframe">
+        <div class="header">
+          <div class="logo">실시간 Car Market</div>
+          <div class="nav">차량 목록 / 차량 등록 / 상담 목록</div>
+          <div class="user">딜러 / 로그아웃</div>
+        </div>
+        <div class="form-wide">
+          <div class="box dark">기존 차량 정보</div>
+          <div class="fields-2">
+            <div class="input">차량명</div><div class="input">제조사</div>
+            <div class="input">가격</div><div class="input">연식</div>
+            <div class="input">차종</div><div class="input">연료</div>
+            <div class="input">주행거리</div><div class="input">지역</div>
+            <div class="input">변속기</div><div class="input">외장 색상</div>
+          </div>
+          <div class="input" style="min-height: 80px;">설명</div>
+          <div class="box dark">이미지 관리</div>
+          <div class="selected-images">
+            <div class="car-card"><div class="image">기존 이미지</div><div class="button light">삭제</div></div>
+            <div class="car-card"><div class="image">기존 이미지</div><div class="button light">삭제</div></div>
+            <div class="car-card"><div class="image">새 업로드</div><div class="button light">삭제</div></div>
+            <div class="car-card"><div class="image">샘플 이미지</div><div class="button light">삭제</div></div>
+          </div>
+          <div class="tabs">
+            <div class="button">직접 업로드</div>
+            <div class="button light">샘플 이미지 선택</div>
+          </div>
+          <div class="sample-cards">
+            <div class="car-card"><div class="image">샘플 차량</div><div class="box white">차량명</div></div>
+            <div class="car-card"><div class="image">샘플 차량</div><div class="box white">차량명</div></div>
+            <div class="car-card"><div class="image">샘플 차량</div><div class="box white">차량명</div></div>
+          </div>
+          <div class="fields-2">
+            <div class="button light">취소</div>
+            <div class="button">수정 완료</div>
+          </div>
+        </div>
+      </div>
+      <h3>주요 구성 요소</h3>
+      <table>
+        <tr><th>요소</th><th>설명</th></tr>
+        <tr><td>기존 이미지</td><td>삭제하지 않은 기존 이미지는 유지</td></tr>
+        <tr><td>새 이미지</td><td>직접 업로드 또는 샘플 이미지로 추가 가능</td></tr>
+        <tr><td>수정 완료</td><td>기존 유지 이미지 뒤에 새 이미지가 추가된 순서로 저장</td></tr>
+      </table>
+    </section>
+
+    <section class="page">
+      <h2>WF-08. 상담방 목록</h2>
+      <div class="wireframe">
+        <div class="header">
+          <div class="logo">실시간 Car Market</div>
+          <div class="nav">차량 목록 / 상담 목록</div>
+          <div class="user">사용자 / 로그아웃</div>
+        </div>
+        <div class="box dark">상담 목록 | 총 3개의 상담방 | 차량 목록 이동</div>
+        <div style="margin-top: 12px;">
+          <div class="chat-list-item">
+            <div>
+              <div class="box white">차량명 + 상대방 이름</div>
+              <div class="box white">최근 메시지</div>
+            </div>
+            <div class="box center">최근 시간</div>
+            <div class="button light">나가기</div>
+          </div>
+          <div class="chat-list-item">
+            <div>
+              <div class="box white">차량명 + 상대방 이름</div>
+              <div class="box white">최근 메시지</div>
+            </div>
+            <div class="box center">최근 시간</div>
+            <div class="button light">나가기</div>
+          </div>
+        </div>
+      </div>
+      <h3>주요 구성 요소</h3>
+      <table>
+        <tr><th>요소</th><th>설명</th></tr>
+        <tr><td>상담방 카드</td><td>차량명, 상대방 이름, 최근 메시지, 최근 시간을 표시</td></tr>
+        <tr><td>상담방 나가기</td><td>해당 사용자 상담 목록에서만 숨김. 상대방과 기존 메시지는 유지</td></tr>
+        <tr><td>차량 목록 이동</td><td>차량 목록 화면으로 이동</td></tr>
+      </table>
+    </section>
+
+    <section class="page">
+      <h2>WF-09. 실시간 상담</h2>
+      <div class="wireframe">
+        <div class="header">
+          <div class="logo">실시간 Car Market</div>
+          <div class="nav">차량 목록 / 상담 목록</div>
+          <div class="user">사용자 / 로그아웃</div>
+        </div>
+        <div class="chat-area">
+          <div class="fields-2">
+            <div>
+              <div class="box dark">차량명</div>
+              <div class="box white">딜러/구매자 표시 + 딜러 온라인 상태</div>
+            </div>
+            <div class="button light">상담방 나가기</div>
+          </div>
+          <div class="messages">
+            <div class="message other">상대방 메시지<br /><span class="muted">시간</span></div>
+            <div class="message mine">내 메시지<br /><span class="muted">시간</span></div>
+            <div class="message other">상대방 메시지<br /><span class="muted">시간</span></div>
+          </div>
+          <div class="chat-input">
+            <div class="input">메시지 입력창<br />Enter 전송 / Shift+Enter 줄바꿈</div>
+            <div class="button">전송</div>
+          </div>
+        </div>
+      </div>
+      <h3>주요 구성 요소</h3>
+      <table>
+        <tr><th>요소</th><th>설명</th></tr>
+        <tr><td>상대방 표시</td><td>구매자는 딜러명과 온라인 상태를 보고, 딜러는 구매자명을 확인</td></tr>
+        <tr><td>좌우 메시지</td><td>내 메시지는 오른쪽, 상대방 메시지는 왼쪽에 배치</td></tr>
+        <tr><td>입력창</td><td>Enter 전송, Shift+Enter 줄바꿈, 공백 메시지 전송 방지</td></tr>
+      </table>
+    </section>
+
+    <section class="page">
+      <h2>10. 구매자와 딜러 화면 차이</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>구분</th>
+            <th>구매자</th>
+            <th>딜러</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>차량 상세</td>
+            <td>담당 딜러와 상담하기 버튼 표시</td>
+            <td>본인 차량에서는 등록 딜러, 수정, 삭제 버튼 표시</td>
+          </tr>
+          <tr>
+            <td>차량 관리</td>
+            <td>등록/수정/삭제 불가</td>
+            <td>본인 차량 등록/수정/삭제 가능</td>
+          </tr>
+          <tr>
+            <td>상담방 목록</td>
+            <td>본인이 생성한 상담방 표시</td>
+            <td>본인 차량에 연결된 상담방 표시</td>
+          </tr>
+          <tr>
+            <td>실시간 상담</td>
+            <td>딜러 온라인/오프라인 상태 표시</td>
+            <td>구매자 이름과 메시지 표시</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>11. 반응형 동작</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>화면</th>
+            <th>PC</th>
+            <th>태블릿/모바일</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>차량 목록</td>
+            <td>필터 사이드바 + 차량 카드 3열</td>
+            <td>카드 2열 또는 1열로 축소, 필터는 화면 폭에 맞춰 세로 배치</td>
+          </tr>
+          <tr>
+            <td>차량 상세</td>
+            <td>좌측 이미지/스펙 + 우측 요약 카드 2열</td>
+            <td>이미지, 요약 카드, 주요 스펙, 상세 설명 순서로 세로 배치</td>
+          </tr>
+          <tr>
+            <td>등록/수정</td>
+            <td>입력 폼 2열, 샘플 차량 목록 3열</td>
+            <td>입력 필드와 샘플 카드가 1열 또는 2열로 재배치</td>
+          </tr>
+          <tr>
+            <td>상담</td>
+            <td>상담방과 메시지 영역을 넓게 표시</td>
+            <td>상단 정보와 버튼이 줄바꿈되고 메시지 폭을 화면에 맞춤</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="note">
+        본 와이어프레임은 실제 구현 화면의 구조와 흐름을 설명하기 위한 문서이며, 관리자 화면은 구현되지 않았으므로 포함하지 않는다.
+      </div>
+    </section>
+  </main>
+</body>
+</html>

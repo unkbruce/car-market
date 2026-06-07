@@ -10,6 +10,7 @@ import {
   INITIAL_CAR_FORM,
   ImageInputTabs,
   MAX_IMAGE_COUNT,
+  MIN_IMAGE_ERROR_MESSAGE,
   SampleImageSelector,
   getSelectClass,
   inputClass,
@@ -237,6 +238,11 @@ function CarEditPage() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    if (existingImages.length + newImages.length + selectedSampleImageUrls.length === 0) {
+      setError(MIN_IMAGE_ERROR_MESSAGE);
+      return;
+    }
 
     try {
       setIsSubmitting(true);
