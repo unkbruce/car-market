@@ -132,6 +132,14 @@ function sortCars(cars, sortOrder) {
       return Number(secondCar.price || 0) - Number(firstCar.price || 0);
     }
 
+    if (sortOrder === 'yearLatest') {
+      return Number(secondCar.year || 0) - Number(firstCar.year || 0);
+    }
+
+    if (sortOrder === 'mileageLow') {
+      return Number(firstCar.mileage || 0) - Number(secondCar.mileage || 0);
+    }
+
     return getCarTimestamp(secondCar) - getCarTimestamp(firstCar);
   });
 }
@@ -517,6 +525,8 @@ function CarListPage() {
                   <option value="latest">최신순</option>
                   <option value="priceLow">낮은 가격순</option>
                   <option value="priceHigh">높은 가격순</option>
+                  <option value="yearLatest">최신 연식순</option>
+                  <option value="mileageLow">낮은 주행거리순</option>
                 </select>
               </div>
             </div>
