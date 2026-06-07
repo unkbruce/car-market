@@ -445,8 +445,14 @@ export async function updateCar(req, res) {
     const keepImageNames = req.body.keepImageNames === undefined
       ? getImageNamesByKeptUrls(existingCar, keepImageUrls)
       : parseStringArray(req.body.keepImageNames);
-    const nextImageUrls = [...keepImageUrls, ...uploadedImageUrls].slice(0, 8);
-    const nextImageNames = [...keepImageNames, ...uploadedImageNames].slice(0, 8);
+    const sampleImageUrls = parseSampleImageUrls(req.body);
+    const sampleImageNames = parseStringArray(req.body.sampleImageNames).slice(0, sampleImageUrls.length);
+    const nextImageUrls = [...keepImageUrls, ...uploadedImageUrls, ...sampleImageUrls].slice(0, 8);
+    const nextImageNames = [
+      ...keepImageNames,
+      ...uploadedImageNames,
+      ...sampleImageUrls.map((imageUrl, index) => sampleImageNames[index] || imageUrl.split('/').pop() || ''),
+    ].slice(0, 8);
 
     const carData = normalizeCarPayload(normalizeImageFields({
       ...req.body,
@@ -471,6 +477,7 @@ export async function updateCar(req, res) {
     delete updateData.keepImageUrls;
     delete updateData.keepImageNames;
     delete updateData.sampleImageUrls;
+    delete updateData.sampleImageNames;
     delete updateData.dealerId;
     delete updateData.dealerName;
 

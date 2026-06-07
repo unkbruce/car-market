@@ -33,7 +33,7 @@ export const selectPlaceholder = (
   </option>
 );
 export const MAX_IMAGE_COUNT = 8;
-const IMAGE_INPUT_MODES = {
+export const IMAGE_INPUT_MODES = {
   sample: 'sample',
   upload: 'upload',
 };
@@ -54,7 +54,32 @@ export function Field({ label, children, required = false }) {
   );
 }
 
-function SampleImagePreviewPanel({ sampleCar, selectedImageUrls, onImageToggle }) {
+export function ImageInputTabs({ imageInputMode, onImageInputModeChange }) {
+  return (
+    <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-1">
+      <button
+        type="button"
+        className={`h-8 rounded-md px-3 text-xs font-bold transition ${
+          imageInputMode === IMAGE_INPUT_MODES.upload ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+        }`}
+        onClick={() => onImageInputModeChange(IMAGE_INPUT_MODES.upload)}
+      >
+        직접 업로드
+      </button>
+      <button
+        type="button"
+        className={`h-8 rounded-md px-3 text-xs font-bold transition ${
+          imageInputMode === IMAGE_INPUT_MODES.sample ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+        }`}
+        onClick={() => onImageInputModeChange(IMAGE_INPUT_MODES.sample)}
+      >
+        샘플 이미지 선택
+      </button>
+    </div>
+  );
+}
+
+export function SampleImagePreviewPanel({ sampleCar, selectedImageUrls, onImageToggle, helperText }) {
   const previewImageUrls = Array.isArray(sampleCar?.imageUrls) ? sampleCar.imageUrls.slice(0, MAX_IMAGE_COUNT) : [];
 
   if (!sampleCar) {
@@ -69,7 +94,7 @@ function SampleImagePreviewPanel({ sampleCar, selectedImageUrls, onImageToggle }
         <div className="min-w-0">
           <p className="truncate text-xs font-black text-slate-950">{sampleCar.label}</p>
           <p className="mt-0.5 text-[11px] font-medium text-slate-500">
-            샘플 이미지는 최대 {MAX_IMAGE_COUNT}장까지 선택할 수 있습니다. 현재 {selectedImageUrls.length}장 선택됨.
+            {helperText || `샘플 이미지는 최대 ${MAX_IMAGE_COUNT}장까지 선택할 수 있습니다. 현재 ${selectedImageUrls.length}장 선택됨.`}
           </p>
         </div>
       </div>
@@ -112,6 +137,71 @@ function SampleImagePreviewPanel({ sampleCar, selectedImageUrls, onImageToggle }
         <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">표시할 이미지가 없습니다.</p>
       )}
     </>
+  );
+}
+
+export function SampleImageSelector({
+  selectedSampleCarId,
+  selectedImageUrls,
+  onSampleCarSelect,
+  onImageToggle,
+  helperText,
+}) {
+  const selectedSampleCar = SAMPLE_CAR_IMAGES.find((sampleCar) => sampleCar.id === selectedSampleCarId);
+
+  if (SAMPLE_CAR_IMAGES.length === 0) {
+    return <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">등록된 샘플 이미지가 없습니다.</p>;
+  }
+
+  return (
+    <div className="grid gap-2">
+      <div className="max-h-[580px] overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-1.5">
+        <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+          {SAMPLE_CAR_IMAGES.map((sampleCar) => {
+            const sampleImageUrls = Array.isArray(sampleCar.imageUrls) ? sampleCar.imageUrls : [];
+            const previewImageUrl = sampleImageUrls[0] || '';
+            const isSelected = selectedSampleCarId === sampleCar.id;
+
+            return (
+              <button
+                type="button"
+                key={sampleCar.id}
+                className={`overflow-hidden rounded-lg border bg-white text-left transition ${
+                  isSelected ? 'border-blue-500 shadow-sm ring-2 ring-blue-500/30' : 'border-slate-200 hover:border-blue-200'
+                }`}
+                onClick={() => onSampleCarSelect(sampleCar)}
+              >
+                <div className="aspect-[5/3] bg-slate-50">
+                  {previewImageUrl ? (
+                    <img src={previewImageUrl} alt={sampleCar.label} className="h-full w-full object-contain object-center" />
+                  ) : (
+                    <div className="grid h-full place-items-center text-[11px] font-medium text-slate-400">이미지 없음</div>
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-1.5 px-2 py-1">
+                  <div className="min-w-0">
+                    <span className="block truncate text-[11px] font-bold text-slate-700">{sampleCar.label}</span>
+                    <span className="mt-0.5 block text-[10px] font-medium text-slate-400">{sampleImageUrls.length}장</span>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                    {isSelected ? '선택됨' : '선택'}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+        <SampleImagePreviewPanel
+          sampleCar={selectedSampleCar}
+          selectedImageUrls={selectedImageUrls}
+          onImageToggle={onImageToggle}
+          helperText={helperText}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -331,8 +421,6 @@ function CarNewPage() {
     );
   }
 
-  const selectedSampleCar = SAMPLE_CAR_IMAGES.find((sampleCar) => sampleCar.id === selectedSampleCarId);
-
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-950">
       <Header subtitle="딜러 차량 등록" />
@@ -435,80 +523,16 @@ function CarNewPage() {
 
           <div className="mb-7 mt-3">
             <Field label="차량 사진">
-              <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-1">
-                <button
-                  type="button"
-                  className={`h-8 rounded-md px-3 text-xs font-bold transition ${
-                    imageInputMode === IMAGE_INPUT_MODES.upload ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-900'
-                  }`}
-                  onClick={() => handleImageInputModeChange(IMAGE_INPUT_MODES.upload)}
-                >
-                  직접 업로드
-                </button>
-                <button
-                  type="button"
-                  className={`h-8 rounded-md px-3 text-xs font-bold transition ${
-                    imageInputMode === IMAGE_INPUT_MODES.sample ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-900'
-                  }`}
-                  onClick={() => handleImageInputModeChange(IMAGE_INPUT_MODES.sample)}
-                >
-                  샘플 이미지 선택
-                </button>
-              </div>
+              <ImageInputTabs imageInputMode={imageInputMode} onImageInputModeChange={handleImageInputModeChange} />
 
               {imageInputMode === IMAGE_INPUT_MODES.sample ? (
                 <div className="mt-3">
-                  {SAMPLE_CAR_IMAGES.length > 0 ? (
-                    <div className="grid gap-2">
-                      <div className="max-h-[580px] overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-1.5">
-                        <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                          {SAMPLE_CAR_IMAGES.map((sampleCar) => {
-                            const sampleImageUrls = Array.isArray(sampleCar.imageUrls) ? sampleCar.imageUrls : [];
-                            const previewImageUrl = sampleImageUrls[0] || '';
-                            const isSelected = selectedSampleCarId === sampleCar.id;
-
-                            return (
-                              <button
-                                type="button"
-                                key={sampleCar.id}
-                                className={`overflow-hidden rounded-lg border bg-white text-left transition ${
-                                  isSelected ? 'border-blue-500 shadow-sm ring-2 ring-blue-500/30' : 'border-slate-200 hover:border-blue-200'
-                                }`}
-                                onClick={() => handleSampleCarSelect(sampleCar)}
-                              >
-                                <div className="aspect-[5/3] bg-slate-50">
-                                  {previewImageUrl ? (
-                                    <img src={previewImageUrl} alt={sampleCar.label} className="h-full w-full object-contain object-center" />
-                                  ) : (
-                                      <div className="grid h-full place-items-center text-[11px] font-medium text-slate-400">이미지 없음</div>
-                                  )}
-                                </div>
-                                <div className="flex items-center justify-between gap-1.5 px-2 py-1">
-                                  <div className="min-w-0">
-                                    <span className="block truncate text-[11px] font-bold text-slate-700">{sampleCar.label}</span>
-                                    <span className="mt-0.5 block text-[10px] font-medium text-slate-400">{sampleImageUrls.length}장</span>
-                                  </div>
-                                  <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                                    {isSelected ? '선택됨' : '선택'}
-                                  </span>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div className="rounded-lg border border-slate-200 bg-white p-2.5">
-                        <SampleImagePreviewPanel
-                          sampleCar={selectedSampleCar}
-                          selectedImageUrls={selectedSampleImageUrls}
-                          onImageToggle={handleSampleImageToggle}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">등록된 샘플 이미지가 없습니다.</p>
-                  )}
+                  <SampleImageSelector
+                    selectedSampleCarId={selectedSampleCarId}
+                    selectedImageUrls={selectedSampleImageUrls}
+                    onSampleCarSelect={handleSampleCarSelect}
+                    onImageToggle={handleSampleImageToggle}
+                  />
                 </div>
               ) : (
                 <>

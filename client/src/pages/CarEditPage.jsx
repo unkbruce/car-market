@@ -6,8 +6,11 @@ import StatusMessage from '../components/StatusMessage.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import {
   Field,
+  IMAGE_INPUT_MODES,
   INITIAL_CAR_FORM,
+  ImageInputTabs,
   MAX_IMAGE_COUNT,
+  SampleImageSelector,
   getSelectClass,
   inputClass,
   selectPlaceholder,
@@ -83,6 +86,9 @@ function CarEditPage() {
   const [form, setForm] = useState(INITIAL_CAR_FORM);
   const [existingImages, setExistingImages] = useState([]);
   const [newImages, setNewImages] = useState([]);
+  const [imageInputMode, setImageInputMode] = useState(IMAGE_INPUT_MODES.upload);
+  const [selectedSampleCarId, setSelectedSampleCarId] = useState('');
+  const [selectedSampleImageUrls, setSelectedSampleImageUrls] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -136,9 +142,42 @@ function CarEditPage() {
     }));
   }
 
+  function handleImageInputModeChange(nextMode) {
+    setImageInputMode(nextMode);
+    setError('');
+  }
+
+  function handleSampleCarSelect(sampleCar) {
+    setSelectedSampleCarId((currentSampleCarId) => {
+      if (currentSampleCarId !== sampleCar.id) {
+        setSelectedSampleImageUrls([]);
+        setError('');
+      }
+
+      return sampleCar.id;
+    });
+  }
+
+  function handleSampleImageToggle(imageUrl) {
+    setSelectedSampleImageUrls((currentUrls) => {
+      if (currentUrls.includes(imageUrl)) {
+        setError('');
+        return currentUrls.filter((url) => url !== imageUrl);
+      }
+
+      if (existingImages.length + newImages.length + currentUrls.length >= MAX_IMAGE_COUNT) {
+        setError(`기존 이미지와 새 이미지를 합쳐 최대 ${MAX_IMAGE_COUNT}장까지 관리할 수 있습니다.`);
+        return currentUrls;
+      }
+
+      setError('');
+      return [...currentUrls, imageUrl];
+    });
+  }
+
   function handleImageChange(event) {
     const selectedFiles = Array.from(event.target.files || []);
-    const remainingSlots = MAX_IMAGE_COUNT - existingImages.length - newImages.length;
+    const remainingSlots = MAX_IMAGE_COUNT - existingImages.length - newImages.length - selectedSampleImageUrls.length;
     const existingNewImageIds = new Set(newImages.map((image) => image.id));
     const nextImages = [];
     let hasDuplicate = false;
@@ -192,6 +231,10 @@ function CarEditPage() {
     }
   }
 
+  function getSampleImageName(imageUrl) {
+    return imageUrl.split('/').pop() || '샘플 이미지';
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -208,6 +251,8 @@ function CarEditPage() {
       formData.append('uid', currentUser.uid);
       formData.append('keepImageUrls', JSON.stringify(existingImages.map((image) => image.imageUrl)));
       formData.append('keepImageNames', JSON.stringify(existingImages.map((image) => image.imageName)));
+      formData.append('sampleImageUrls', JSON.stringify(selectedSampleImageUrls));
+      formData.append('sampleImageNames', JSON.stringify(selectedSampleImageUrls.map(getSampleImageName)));
 
       newImages.forEach((image) => {
         formData.append('images', image.file);
@@ -276,7 +321,7 @@ function CarEditPage() {
     );
   }
 
-  const selectedImageCount = existingImages.length + newImages.length;
+  const selectedImageCount = existingImages.length + newImages.length + selectedSampleImageUrls.length;
 
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-950">
@@ -354,18 +399,34 @@ function CarEditPage() {
 
           <div className="mt-4">
             <Field label="차량 사진">
-              <input
-                className="block w-full cursor-pointer rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 outline-none transition file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white hover:bg-slate-100 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10"
-                name="images"
-                type="file"
-                accept="image/*"
-                multiple
-                ref={imageInputRef}
-                onChange={handleImageChange}
-              />
-              <span className="text-xs font-medium text-slate-500">
-                기존 이미지와 새 이미지를 합쳐 최대 {MAX_IMAGE_COUNT}장까지 관리할 수 있습니다. 현재 {selectedImageCount}장 선택됨.
-              </span>
+              <ImageInputTabs imageInputMode={imageInputMode} onImageInputModeChange={handleImageInputModeChange} />
+
+              {imageInputMode === IMAGE_INPUT_MODES.sample ? (
+                <div className="mt-3">
+                  <SampleImageSelector
+                    selectedSampleCarId={selectedSampleCarId}
+                    selectedImageUrls={selectedSampleImageUrls}
+                    onSampleCarSelect={handleSampleCarSelect}
+                    onImageToggle={handleSampleImageToggle}
+                    helperText={`기존 이미지와 새 이미지를 합쳐 최대 ${MAX_IMAGE_COUNT}장까지 관리할 수 있습니다. 현재 ${selectedImageCount}장 선택됨.`}
+                  />
+                </div>
+              ) : (
+                <>
+                  <input
+                    className="mt-3 block w-full cursor-pointer rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 outline-none transition file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white hover:bg-slate-100 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10"
+                    name="images"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    ref={imageInputRef}
+                    onChange={handleImageChange}
+                  />
+                  <span className="text-xs font-medium text-slate-500">
+                    기존 이미지와 새 이미지를 합쳐 최대 {MAX_IMAGE_COUNT}장까지 관리할 수 있습니다. 현재 {selectedImageCount}장 선택됨.
+                  </span>
+                </>
+              )}
             </Field>
             {selectedImageCount > 0 ? (
               <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -397,6 +458,26 @@ function CarEditPage() {
                         type="button"
                         className="shrink-0 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50"
                         onClick={() => handleRemoveNewImage(image.id)}
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {selectedSampleImageUrls.map((imageUrl, index) => (
+                  <div key={imageUrl} className="overflow-hidden rounded-lg border border-blue-100 bg-white">
+                    <div className="relative aspect-[4/3] bg-slate-50">
+                      <img src={imageUrl} alt={`샘플 이미지 ${index + 1}`} className="h-full w-full object-contain object-center" />
+                      <span className="absolute left-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-blue-600 text-[11px] font-black text-white shadow-sm">
+                        {index + 1}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 px-2.5 py-2">
+                      <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-600">{getSampleImageName(imageUrl)}</span>
+                      <button
+                        type="button"
+                        className="shrink-0 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50"
+                        onClick={() => handleSampleImageToggle(imageUrl)}
                       >
                         삭제
                       </button>
