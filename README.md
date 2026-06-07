@@ -96,6 +96,10 @@ Deployment:
 - Socket.io 기반 실시간 메시지
 - 메시지 MongoDB 저장
 - Enter 전송, Shift+Enter 줄바꿈
+- 구매자와 딜러 모두 상담방 나가기 가능
+- 상담방 나가기 시 해당 사용자의 상담 목록에서만 숨김
+- 상대방의 상담 목록과 기존 메시지는 유지
+- 같은 차량에서 다시 상담하면 기존 상담방이 다시 활성화됨
 - 딜러 온라인/오프라인 상태 표시
 - 딜러 온라인 상태는 채팅방 화면에서만 표시
 
@@ -284,7 +288,10 @@ POST /api/chats/rooms
 GET /api/chats/rooms?uid=...
 GET /api/chats/rooms/:roomId/messages?uid=...
 POST /api/chats/rooms/:roomId/messages
+PATCH /api/chats/rooms/:roomId/leave
 ```
+
+Socket.io의 `leave-room`은 화면 이탈 시 소켓 방에서 빠지는 이벤트입니다. 사용자가 상담 목록에서 방을 정리하는 기능은 별도 REST API로 처리하며, 상담방과 메시지는 삭제하지 않고 사용자별 나가기 상태만 관리합니다. 한쪽 사용자가 나가도 상대방의 상담방과 기존 메시지는 유지됩니다.
 
 Socket.io 이벤트:
 
