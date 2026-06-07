@@ -27,6 +27,28 @@ function SummaryItem({ label, value }) {
   );
 }
 
+function hasDisplayValue(value) {
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function formatSpecText(value, formatter) {
+  if (!hasDisplayValue(value)) {
+    return '-';
+  }
+
+  return formatter ? formatter(value) : value;
+}
+
+function formatSpecNumber(value, formatter) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return '-';
+  }
+
+  return formatter ? formatter(value) : numericValue;
+}
+
 function getCarImages(car) {
   if (Array.isArray(car.imageUrls) && car.imageUrls.length > 0) {
     return car.imageUrls.slice(0, 8);
@@ -389,14 +411,14 @@ function CarDetailPage() {
             </div>
 
             <div className="mt-2 grid grid-cols-1 gap-x-5 sm:grid-cols-2 xl:grid-cols-4">
-              <SpecItem label="제조사" value={formatCompany(car.company)} />
-              <SpecItem label="연식" value={car.year ? `${car.year}년식` : '-'} />
-              <SpecItem label="차종" value={car.type} />
-              <SpecItem label="연료" value={formatFuel(car.fuel)} />
-              <SpecItem label="변속기" value={formatTransmission(car.transmission)} />
-              <SpecItem label="주행거리" value={formatDistance(car.mileage)} />
-              <SpecItem label="지역" value={car.location || '지역 미정'} />
-              <SpecItem label="색상" value={car.color} />
+              <SpecItem label="제조사" value={formatSpecText(car.company, formatCompany)} />
+              <SpecItem label="연식" value={formatSpecNumber(car.year, (year) => `${year}년식`)} />
+              <SpecItem label="차종" value={formatSpecText(car.type)} />
+              <SpecItem label="연료" value={formatSpecText(car.fuel, formatFuel)} />
+              <SpecItem label="변속기" value={formatSpecText(car.transmission, formatTransmission)} />
+              <SpecItem label="주행거리" value={formatSpecNumber(car.mileage, formatDistance)} />
+              <SpecItem label="지역" value={formatSpecText(car.location)} />
+              <SpecItem label="색상" value={formatSpecText(car.color)} />
             </div>
           </section>
 
