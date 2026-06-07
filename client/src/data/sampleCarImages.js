@@ -210,13 +210,6 @@ export const SAMPLE_CAR_IMAGES = [
     ],
   },
   {
-    id: 'kia-sorento-2022-white',
-    label: 'Kia Sorento 2022 White',
-    imageUrls: [
-      '/images/cars/kia-sorento-2022-white/kia-sorento-2022-white-front-3q.png',
-    ],
-  },
-  {
     id: 'lamborghini-urus-2023-yellow',
     label: 'Lamborghini Urus 2023 Yellow',
     imageUrls: [
