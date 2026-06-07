@@ -171,9 +171,9 @@ export function SampleImageSelector({
                 }`}
                 onClick={() => onSampleCarSelect(sampleCar)}
               >
-                <div className="aspect-[5/3] bg-slate-50">
+                <div className="aspect-[4/3] overflow-hidden bg-slate-50">
                   {previewImageUrl ? (
-                    <img src={previewImageUrl} alt={sampleCar.label} className="h-full w-full object-contain object-center" />
+                    <img src={previewImageUrl} alt={sampleCar.label} className="h-full w-full object-cover object-center" />
                   ) : (
                     <div className="grid h-full place-items-center text-[11px] font-medium text-slate-400">이미지 없음</div>
                   )}
