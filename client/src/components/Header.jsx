@@ -2,7 +2,7 @@ import { Car, CirclePlus, LogOut } from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
-function Header({ subtitle }) {
+function Header() {
   const { currentUser, profile, isAuthenticated, isAuthLoading, logout } = useAuth();
   const isDealer = profile?.role === 'dealer';
 
@@ -17,10 +17,7 @@ function Header({ subtitle }) {
           <div className="grid h-9 w-9 place-items-center rounded-lg bg-blue-600 text-white shadow-sm">
             <Car size={19} strokeWidth={2.4} />
           </div>
-          <div>
-            <h1 className="text-base font-extrabold tracking-tight text-slate-900 sm:text-lg">실시간 Car Market</h1>
-            {subtitle ? <p className="hidden text-[11px] font-medium text-slate-500 sm:block">{subtitle}</p> : null}
-          </div>
+          <h1 className="text-base font-extrabold tracking-tight text-slate-900 sm:text-lg">실시간 Car Market</h1>
         </Link>
 
         <nav className="flex items-center gap-1.5 text-sm font-medium text-slate-600 sm:gap-3">
