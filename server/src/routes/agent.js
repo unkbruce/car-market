@@ -57,6 +57,7 @@ router.post('/chat', async (req, res) => {
       success: true,
       answer: payload.answer || '',
       sessionId: payload.sessionId || sessionId,
+      selected_car_ids: Array.isArray(payload.selected_car_ids) ? payload.selected_car_ids : [],
       cars,
     });
   } catch (error) {

@@ -28,6 +28,24 @@ CAR_FIELDS = [
     "imageUrls",
 ]
 
+COMPANY_ALIASES = {
+    "KIA": ["기아", "기아차", "kia", "KIA"],
+    "HYUNDAI": ["현대", "현대차", "hyundai", "HYUNDAI"],
+    "GENESIS": ["제네시스", "genesis", "GENESIS"],
+    "CHEVROLET": ["쉐보레", "시보레", "chevrolet", "CHEVROLET"],
+    "RENAULT": ["르노", "르노코리아", "renault", "RENAULT"],
+    "KG MOBILITY": ["kg", "kgm", "kg모빌리티", "KG MOBILITY", "쌍용", "ssangyong"],
+    "BMW": ["bmw", "BMW"],
+    "BENZ": ["벤츠", "메르세데스", "메르세데스 벤츠", "mercedes", "benz", "BENZ"],
+    "AUDI": ["아우디", "audi", "AUDI"],
+    "VOLVO": ["볼보", "volvo", "VOLVO"],
+    "LEXUS": ["렉서스", "lexus", "LEXUS"],
+    "TESLA": ["테슬라", "tesla", "TESLA"],
+    "PORSCHE": ["포르쉐", "porsche", "PORSCHE"],
+    "LAMBORGHINI": ["람보르기니", "lamborghini", "LAMBORGHINI"],
+    "ROLLS_ROYCE": ["롤스로이스", "rolls royce", "rolls-royce", "ROLLS_ROYCE"],
+}
+
 
 def _is_development() -> bool:
     return os.getenv("ENV") == "development" or os.getenv("NODE_ENV") == "development"
@@ -39,6 +57,45 @@ def _api_base() -> str:
 
 def _json(data: Any) -> str:
     return json.dumps(data, ensure_ascii=False)
+
+
+def _normalize_compare(value: Any) -> str:
+    return str(value or "").strip().lower().replace("-", " ").replace("_", " ")
+
+
+def normalize_company_query(company: Optional[str]) -> Optional[str]:
+    if not company or not company.strip():
+        return None
+
+    requested_values = [item.strip() for item in str(company).split(",") if item.strip()]
+    normalized_values = []
+
+    for requested_value in requested_values:
+        comparable = _normalize_compare(requested_value)
+        matched_key = None
+
+        for canonical, aliases in COMPANY_ALIASES.items():
+            candidates = [canonical, *aliases]
+
+            if any(_normalize_compare(candidate) == comparable for candidate in candidates):
+                matched_key = canonical
+                break
+
+        if matched_key:
+            normalized_values.extend([matched_key, *COMPANY_ALIASES[matched_key]])
+        else:
+            normalized_values.append(requested_value)
+
+    deduped = []
+    seen = set()
+
+    for value in normalized_values:
+        key = _normalize_compare(value)
+        if key and key not in seen:
+            seen.add(key)
+            deduped.append(value)
+
+    return ",".join(deduped)
 
 
 def _compact_car(car: dict[str, Any]) -> dict[str, Any]:
@@ -63,62 +120,31 @@ def _read_success_data(response: httpx.Response) -> Any:
 
 def _get_car_detail(car_id: str) -> dict[str, Any]:
     if not car_id or not car_id.strip():
-        return {
-            "success": False,
-            "errorType": "invalid_id",
-            "message": "차량 ID가 비어 있습니다.",
-        }
+        return {"success": False, "errorType": "invalid_id", "message": "차량 ID가 비어 있습니다."}
 
     try:
         response = httpx.get(f"{_api_base()}/cars/{car_id.strip()}", timeout=API_TIMEOUT_SECONDS)
     except httpx.RequestError:
-        return {
-            "success": False,
-            "errorType": "network_error",
-            "message": "차량 상세 API에 연결할 수 없습니다.",
-        }
+        return {"success": False, "errorType": "network_error", "message": "차량 상세 API에 연결할 수 없습니다."}
 
     if response.status_code == 400:
-        return {
-            "success": False,
-            "errorType": "invalid_id",
-            "message": "잘못된 차량 ID입니다.",
-        }
+        return {"success": False, "errorType": "invalid_id", "message": "잘못된 차량 ID입니다."}
 
     if response.status_code == 404:
-        return {
-            "success": False,
-            "errorType": "not_found",
-            "message": "차량을 찾을 수 없습니다.",
-        }
+        return {"success": False, "errorType": "not_found", "message": "차량을 찾을 수 없습니다."}
 
     if response.is_error:
-        return {
-            "success": False,
-            "errorType": "api_error",
-            "message": "차량 상세 정보를 불러오지 못했습니다.",
-        }
+        return {"success": False, "errorType": "api_error", "message": "차량 상세 정보를 불러오지 못했습니다."}
 
     try:
         data = _read_success_data(response)
     except (json.JSONDecodeError, ValueError):
-        return {
-            "success": False,
-            "errorType": "invalid_response",
-            "message": "차량 상세 API 응답 형식이 올바르지 않습니다.",
-        }
+        return {"success": False, "errorType": "invalid_response", "message": "차량 상세 API 응답 형식이 올바르지 않습니다."}
 
     if not isinstance(data, dict):
-        return {
-            "success": False,
-            "errorType": "invalid_response",
-            "message": "차량 상세 데이터 형식이 올바르지 않습니다.",
-        }
+        return {"success": False, "errorType": "invalid_response", "message": "차량 상세 데이터 형식이 올바르지 않습니다."}
 
-    return {
-        "success": True,
-        "data": _compact_car(data),
-    }
+    return {"success": True, "data": _compact_car(data)}
 
 
 class SearchCarsInput(BaseModel):
@@ -168,8 +194,9 @@ def search_cars(
 ) -> str:
     """CarMarket 차량 검색 API에서 실제 등록 차량을 검색한다."""
 
+    normalized_company = normalize_company_query(company)
     raw_params = {
-        "company": company,
+        "company": normalized_company,
         "keyword": keyword,
         "type": type,
         "fuel": fuel,
@@ -188,44 +215,31 @@ def search_cars(
         if value is not None and str(value).strip() != ""
     }
 
+    if _is_development():
+        print(f"normalized company: {normalized_company or ''}")
+
     try:
         response = httpx.get(f"{_api_base()}/cars/search", params=params, timeout=API_TIMEOUT_SECONDS)
         response.raise_for_status()
         data = _read_success_data(response)
     except httpx.RequestError:
-        return _json({
-            "success": False,
-            "errorType": "network_error",
-            "message": "차량 검색 API에 연결할 수 없습니다.",
-        })
+        return _json({"success": False, "errorType": "network_error", "message": "차량 검색 API에 연결할 수 없습니다."})
     except httpx.HTTPStatusError:
-        return _json({
-            "success": False,
-            "errorType": "api_error",
-            "message": "차량 검색 요청이 실패했습니다.",
-        })
+        return _json({"success": False, "errorType": "api_error", "message": "차량 검색 요청이 실패했습니다."})
     except (json.JSONDecodeError, ValueError):
-        return _json({
-            "success": False,
-            "errorType": "invalid_response",
-            "message": "차량 검색 API 응답 형식이 올바르지 않습니다.",
-        })
+        return _json({"success": False, "errorType": "invalid_response", "message": "차량 검색 API 응답 형식이 올바르지 않습니다."})
 
     if not isinstance(data, list):
-        return _json({
-            "success": False,
-            "errorType": "invalid_response",
-            "message": "차량 검색 결과 형식이 올바르지 않습니다.",
-        })
+        return _json({"success": False, "errorType": "invalid_response", "message": "차량 검색 결과 형식이 올바르지 않습니다."})
 
     if _is_development():
-        print(f"search_cars result count: {len(data)}")
+        print(f"search result count: {len(data)}")
 
     return _json({
         "success": True,
         "count": len(data),
-        "returnedCount": min(len(data), 5),
-        "data": [_compact_car(car) for car in data[:5] if isinstance(car, dict)],
+        "returnedCount": min(len(data), 8),
+        "data": [_compact_car(car) for car in data[:8] if isinstance(car, dict)],
     })
 
 
@@ -271,11 +285,7 @@ def compare_cars(first_car_id: str, second_car_id: str) -> str:
         data = car["data"]
         return {field: data.get(field) for field in fields if field in data}
 
-    return _json({
-        "success": True,
-        "first": pick(first),
-        "second": pick(second),
-    })
+    return _json({"success": True, "first": pick(first), "second": pick(second)})
 
 
 @tool(args_schema=DealerMessageInput)
@@ -290,11 +300,7 @@ def make_dealer_message(car_name: str, question: str, user_name: Optional[str] =
         "확인 가능하실 때 답변 부탁드립니다. 감사합니다."
     )
 
-    return _json({
-        "success": True,
-        "message": message,
-        "sent": False,
-    })
+    return _json({"success": True, "message": message, "sent": False})
 
 
 TOOLS = [search_cars, get_car_detail, compare_cars, make_dealer_message]

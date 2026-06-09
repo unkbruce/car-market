@@ -83,5 +83,6 @@ async def chat(request: ChatRequest):
         "success": True,
         "answer": result["answer"],
         "sessionId": session_id,
+        "selected_car_ids": result.get("selected_car_ids", []),
         "cars": cars,
     }

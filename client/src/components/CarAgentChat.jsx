@@ -205,6 +205,7 @@ function CarAgentChat({ onClose }) {
 
       if (import.meta.env.DEV) {
         console.log('React received cars count:', cars.length);
+        console.log('React card car ids:', cars.map((car) => car.id));
       }
 
       setSessionId(nextSessionId);
