@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, RotateCcw, Search, X } from 'lucide-react';
+import { Bot, ChevronDown, RotateCcw, Search, X } from 'lucide-react';
 import api from '../api/api.js';
 import CarCard from '../components/CarCard.jsx';
+import CarAgentChat from '../components/CarAgentChat.jsx';
 import Header from '../components/Header.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import {
@@ -238,6 +239,7 @@ function CarListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [openSections, setOpenSections] = useState(INITIAL_OPEN_SECTIONS);
   const [companyGroupOpenSections, setCompanyGroupOpenSections] = useState(INITIAL_COMPANY_GROUP_OPEN_SECTIONS);
+  const [isAgentOpen, setIsAgentOpen] = useState(false);
 
   const isSearchMode = useMemo(() => hasActiveSearch(filters), [filters]);
   const activeChips = useMemo(() => {
@@ -615,6 +617,29 @@ function CarListPage() {
           </section>
         </div>
       </div>
+
+      {isAgentOpen ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 h-[82vh] overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-[0_-10px_30px_rgba(15,23,42,0.18)] sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[620px] sm:w-[390px] sm:rounded-2xl sm:shadow-[0_20px_50px_rgba(15,23,42,0.22)]">
+          <button
+            type="button"
+            className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+            onClick={() => setIsAgentOpen(false)}
+            aria-label="AI 상담 닫기"
+          >
+            <X size={16} />
+          </button>
+          <CarAgentChat />
+        </div>
+      ) : null}
+
+      <button
+        type="button"
+        className="fixed bottom-5 right-5 z-30 inline-flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-[0_14px_30px_rgba(37,99,235,0.32)] transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20"
+        onClick={() => setIsAgentOpen(true)}
+        aria-label="AI 차량 상담 열기"
+      >
+        <Bot size={24} />
+      </button>
     </main>
   );
 }
