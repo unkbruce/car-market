@@ -11,6 +11,7 @@ load_dotenv()
 
 API_TIMEOUT_SECONDS = 8.0
 CAR_FIELDS = [
+    "id",
     "_id",
     "name",
     "company",
@@ -24,7 +25,12 @@ CAR_FIELDS = [
     "color",
     "description",
     "imageUrl",
+    "imageUrls",
 ]
+
+
+def _is_development() -> bool:
+    return os.getenv("ENV") == "development" or os.getenv("NODE_ENV") == "development"
 
 
 def _api_base() -> str:
@@ -36,7 +42,14 @@ def _json(data: Any) -> str:
 
 
 def _compact_car(car: dict[str, Any]) -> dict[str, Any]:
-    return {field: car.get(field) for field in CAR_FIELDS if field in car}
+    compact = {field: car.get(field) for field in CAR_FIELDS if field in car}
+    car_id = car.get("id") or car.get("_id")
+
+    if car_id is not None:
+        compact["id"] = str(car_id)
+        compact["_id"] = str(car_id)
+
+    return compact
 
 
 def _read_success_data(response: httpx.Response) -> Any:
@@ -104,7 +117,7 @@ def _get_car_detail(car_id: str) -> dict[str, Any]:
 
     return {
         "success": True,
-        "data": data,
+        "data": _compact_car(data),
     }
 
 
@@ -205,6 +218,9 @@ def search_cars(
             "message": "차량 검색 결과 형식이 올바르지 않습니다.",
         })
 
+    if _is_development():
+        print(f"search_cars result count: {len(data)}")
+
     return _json({
         "success": True,
         "count": len(data),
@@ -235,11 +251,25 @@ def compare_cars(first_car_id: str, second_car_id: str) -> str:
             "message": "비교할 차량 중 일부 상세 정보를 불러오지 못했습니다.",
         })
 
-    fields = ["name", "company", "price", "year", "mileage", "type", "fuel", "transmission", "location"]
+    fields = [
+        "id",
+        "_id",
+        "name",
+        "company",
+        "price",
+        "year",
+        "mileage",
+        "type",
+        "fuel",
+        "transmission",
+        "location",
+        "imageUrl",
+        "imageUrls",
+    ]
 
     def pick(car: dict[str, Any]) -> dict[str, Any]:
         data = car["data"]
-        return {"_id": data.get("_id"), **{field: data.get(field) for field in fields}}
+        return {field: data.get(field) for field in fields if field in data}
 
     return _json({
         "success": True,

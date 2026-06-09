@@ -325,6 +325,24 @@ function CarListPage() {
     setCurrentPage((page) => Math.min(page, totalPages));
   }, [totalPages]);
 
+  useEffect(() => {
+    if (!isAgentOpen) {
+      return undefined;
+    }
+
+    function handleEscapeKey(event) {
+      if (event.key === 'Escape') {
+        setIsAgentOpen(false);
+      }
+    }
+
+    window.addEventListener('keydown', handleEscapeKey);
+
+    return () => {
+      window.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isAgentOpen]);
+
   function handleTextFilterChange(event) {
     const { name, value } = event.target;
 
@@ -619,7 +637,12 @@ function CarListPage() {
       </div>
 
       {isAgentOpen ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 h-[82vh] overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-[0_-10px_30px_rgba(15,23,42,0.18)] sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[620px] sm:w-[390px] sm:rounded-2xl sm:shadow-[0_20px_50px_rgba(15,23,42,0.22)]">
+        <div
+          className="fixed inset-x-0 bottom-0 z-40 h-[82vh] max-h-[calc(100vh-1rem)] overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-[0_-10px_30px_rgba(15,23,42,0.18)] sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[620px] sm:w-[390px] sm:max-w-[calc(100vw-2.5rem)] sm:rounded-2xl sm:shadow-[0_20px_50px_rgba(15,23,42,0.22)]"
+          role="dialog"
+          aria-modal="false"
+          aria-label="AI 차량 상담 패널"
+        >
           <button
             type="button"
             className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
@@ -628,7 +651,7 @@ function CarListPage() {
           >
             <X size={16} />
           </button>
-          <CarAgentChat />
+          <CarAgentChat onClose={() => setIsAgentOpen(false)} />
         </div>
       ) : null}
 

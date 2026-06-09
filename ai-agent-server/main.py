@@ -20,6 +20,10 @@ class ChatRequest(BaseModel):
     session_id: str | None = None
 
 
+def is_development() -> bool:
+    return os.getenv("ENV") == "development" or os.getenv("NODE_ENV") == "development"
+
+
 app = FastAPI(title="CarMarket AI Agent Server")
 
 client_url = os.getenv("CLIENT_URL", "http://localhost:5173")
@@ -43,7 +47,7 @@ async def unexpected_exception_handler(_request, exc: Exception):
     logger.exception("Unexpected agent server error: %s", exc)
     return JSONResponse(
         status_code=500,
-        content={"success": False, "message": "AI 상담 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."},
+        content={"success": False, "message": "AI 상담 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."},
     )
 
 
@@ -62,17 +66,22 @@ async def chat(request: ChatRequest):
     message = request.message.strip()
 
     if not message:
-        raise HTTPException(status_code=400, detail="메시지를 입력해 주세요.")
+        raise HTTPException(status_code=400, detail="질문 내용을 확인해주세요.")
 
     session_id = request.session_id.strip() if request.session_id else str(uuid4())
 
     if not session_id:
         session_id = str(uuid4())
 
-    answer = ask_agent(message, session_id)
+    result = ask_agent(message, session_id)
+    cars = result.get("cars", [])
+
+    if is_development():
+        print(f"FastAPI response cars count: {len(cars)}")
 
     return {
         "success": True,
-        "answer": answer,
+        "answer": result["answer"],
         "sessionId": session_id,
+        "cars": cars,
     }
