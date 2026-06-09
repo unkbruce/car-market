@@ -9,7 +9,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 
-from tools import COMPANY_ALIASES, TOOLS, normalize_company_query
+from tools import COMPANY_ALIASES, TOOLS, normalize_company_query, normalize_fuel_query, normalize_type_query
 
 load_dotenv()
 
@@ -120,6 +120,133 @@ def _detect_company(message: str) -> str:
                 return normalize_company_query(canonical) or canonical
 
     return ""
+
+
+def _contains_any(message: str, values: tuple[str, ...]) -> bool:
+    normalized_message = _normalize_text(message)
+    return any(_normalize_text(value) in normalized_message for value in values)
+
+
+def _detect_type(message: str) -> str:
+    normalized_message = _normalize_text(message)
+
+    if "suv" in normalized_message:
+        return normalize_type_query("SUV") or "SUV"
+
+    type_patterns = (
+        ("세단", ("세단", "sedan")),
+        ("경차", ("경차",)),
+        ("미니밴", ("미니밴", "minivan", "van")),
+        ("화물차", ("화물차", "truck")),
+        ("준중형차", ("준중형차",)),
+        ("중형차", ("중형차",)),
+        ("준대형차", ("준대형차",)),
+        ("대형차", ("대형차",)),
+        ("소형차", ("소형차",)),
+    )
+
+    for normalized_type, patterns in type_patterns:
+        if _contains_any(message, patterns):
+            return normalize_type_query(normalized_type) or normalized_type
+
+    return ""
+
+
+def _detect_type_constraints(message: str) -> tuple[str, list[str]]:
+    normalized_message = _normalize_text(message)
+
+    if "suv" in normalized_message:
+        return "SUV", []
+
+    exact_patterns = (
+        ("\uc900\uc911\ud615\ucc28", ("\uc900\uc911\ud615\ucc28", "\uc900\uc911\ud615\uc138\ub2e8", "\uc900\uc911\ud615")),
+        ("\uc900\ub300\ud615\ucc28", ("\uc900\ub300\ud615\ucc28", "\uc900\ub300\ud615\uc138\ub2e8", "\uc900\ub300\ud615")),
+        ("\ub300\ud615\ucc28", ("\ub300\ud615\ucc28", "\ub300\ud615\uc138\ub2e8", "\ub300\ud615")),
+        ("\uc911\ud615\ucc28", ("\uc911\ud615\ucc28", "\uc911\ud615\uc138\ub2e8", "\uc911\ud615")),
+        ("\uc18c\ud615\ucc28", ("\uc18c\ud615\ucc28", "\uc18c\ud615\uc138\ub2e8", "\uc18c\ud615")),
+        ("\uacbd\ucc28", ("\uacbd\ucc28",)),
+        ("\ubbf8\ub2c8\ubc34", ("\ubbf8\ub2c8\ubc34", "minivan", "van")),
+        ("\ud654\ubb3c\ucc28", ("\ud654\ubb3c\ucc28", "truck")),
+    )
+
+    for exact_type, patterns in exact_patterns:
+        if any(_normalize_text(pattern) in normalized_message for pattern in patterns):
+            return exact_type, []
+
+    if any(_normalize_text(pattern) in normalized_message for pattern in ("\uc138\ub2e8", "\uc2b9\uc6a9\uc138\ub2e8", "sedan")):
+        return "", ["\uc900\uc911\ud615\ucc28", "\uc911\ud615\ucc28", "\uc900\ub300\ud615\ucc28", "\ub300\ud615\ucc28"]
+
+    return "", []
+
+
+def _matches_type_constraint(car: dict, exact_type: str, broad_types: list[str]) -> bool:
+    car_type = str(car.get("type") or "").strip()
+
+    if exact_type:
+        return car_type == exact_type
+
+    if broad_types:
+        return car_type in broad_types
+
+    return True
+
+
+def _detect_fuel(message: str) -> str:
+    fuel_patterns = (
+        ("electric", ("전기", "전기차", "electric", "ev")),
+        ("hybrid", ("하이브리드", "hybrid")),
+        ("gasoline", ("가솔린", "휘발유", "gasoline", "petrol")),
+        ("diesel", ("디젤", "diesel")),
+        ("LPG", ("lpg", "엘피지")),
+    )
+
+    for normalized_fuel, patterns in fuel_patterns:
+        if _contains_any(message, patterns):
+            return normalize_fuel_query(normalized_fuel) or normalized_fuel
+
+    return ""
+
+
+def _detect_max_price(message: str) -> int | None:
+    patterns = (
+        r"(\d{2,6})\s*만원\s*(?:이하|까지|미만|아래)",
+        r"(\d{2,6})\s*만\s*원\s*(?:이하|까지|미만|아래)",
+    )
+
+    for pattern in patterns:
+        match = re.search(pattern, message)
+        if match:
+            return int(match.group(1))
+
+    return None
+
+
+def _detect_sort(message: str) -> tuple[str, str]:
+    sort_patterns = (
+        ("price", "desc", ("\ube44\uc2fc\uac00\uaca9\uc21c", "\ube44\uc2fc\uc21c", "\uac00\uaca9\ub192\uc740\uc21c", "\uace0\uac00\uc21c", "\uac00\uc7a5\ube44\uc2fc", "\ucd5c\uace0\uac00")),
+        ("price", "asc", ("\uc800\ub834\ud55c\uc21c", "\uc2fc\uc21c", "\uac00\uaca9\ub0ae\uc740\uc21c", "\ucd5c\uc800\uac00")),
+        ("year", "desc", ("\ucd5c\uc2e0\uc5f0\uc2dd\uc21c", "\uc2e0\ud615\uc21c", "\uc5f0\uc2dd\ub192\uc740\uc21c")),
+        ("mileage", "asc", ("\uc8fc\ud589\uac70\ub9ac\uc9e7\uc740\uc21c", "\uc801\uac8c\ud0c4\uc21c")),
+        ("mileage", "desc", ("\uc8fc\ud589\uac70\ub9ac\ub9ce\uc740\uc21c", "\ub9ce\uc774\ud0c4\uc21c")),
+    )
+
+    normalized_message = _normalize_text(message)
+
+    for sort_by, sort_order, patterns in sort_patterns:
+        if any(_normalize_text(pattern) in normalized_message for pattern in patterns):
+            return sort_by, sort_order
+
+    if "\ucd5c\uc2e0\uc21c" in normalized_message:
+        return "year", "desc"
+
+    return "", ""
+
+
+def _is_search_or_recommendation(message: str) -> bool:
+    if _contains_any(message, DETAIL_HINTS):
+        return False
+
+    return _contains_any(message, ("추천", "검색", "찾아", "찾아줘", "보여", "보여줘", "있어", "알려줘"))
 
 
 def _is_ambiguous_all_request(message: str) -> bool:
@@ -237,8 +364,13 @@ def _format_recommendation_answer(cars: list[dict], company: str) -> str:
     return "\n\n".join(blocks)
 
 
-def _run_direct_company_search(company: str, session_id: str) -> dict:
-    tool_result = search_cars_tool.invoke({"company": company})
+def _run_direct_search(filters: dict, session_id: str) -> dict:
+    tool_args = {
+        key: value
+        for key, value in filters.items()
+        if not key.startswith("_") and value is not None and str(value).strip() != ""
+    }
+    tool_result = search_cars_tool.invoke(tool_args)
 
     try:
         payload = json.loads(tool_result)
@@ -246,13 +378,28 @@ def _run_direct_company_search(company: str, session_id: str) -> dict:
         payload = {}
 
     raw_cars = payload.get("data") if isinstance(payload, dict) else []
-    cars = _normalize_many(raw_cars if isinstance(raw_cars, list) else [], limit=3)
+    normalized_cars = _normalize_many(raw_cars if isinstance(raw_cars, list) else [], limit=8)
+    exact_type = str(filters.get("_exact_type") or "")
+    broad_types = filters.get("_broad_types") if isinstance(filters.get("_broad_types"), list) else []
+    sort_by = str(filters.get("_sort_by") or "")
+    sort_order = str(filters.get("_sort_order") or "")
+    cars = [
+        car
+        for car in normalized_cars
+        if _matches_type_constraint(car, exact_type, broad_types)
+    ][:3]
     selected_car_ids = [car["id"] for car in cars]
 
-    session_context.setdefault(session_id, {})["company"] = company
+    company = str(filters.get("company") or "")
+    if company:
+        session_context.setdefault(session_id, {})["company"] = company
 
     if _is_development():
         print("current turn tool names: search_cars")
+        print(f"detected exact type: {exact_type}")
+        print(f"detected broad types: {','.join(broad_types)}")
+        print(f"detected sort_by: {sort_by}")
+        print(f"detected sort_order: {sort_order}")
         print(f"selected car ids: {','.join(selected_car_ids)}")
         print(f"response cars count: {len(cars)}")
 
@@ -261,6 +408,30 @@ def _run_direct_company_search(company: str, session_id: str) -> dict:
         "selected_car_ids": selected_car_ids,
         "cars": cars,
     }
+
+
+def _build_direct_filter(message: str, preserved_company: str) -> dict:
+    exact_type, broad_types = _detect_type_constraints(message)
+    type_query = exact_type or ",".join(broad_types)
+    sort_by, sort_order = _detect_sort(message)
+
+    return {
+        "company": preserved_company,
+        "type": type_query,
+        "fuel": _detect_fuel(message),
+        "max_price": _detect_max_price(message),
+        "sort_by": sort_by,
+        "sort_order": sort_order,
+        "limit": 50 if sort_by else None,
+        "_exact_type": exact_type,
+        "_broad_types": broad_types,
+        "_sort_by": sort_by,
+        "_sort_order": sort_order,
+    }
+
+
+def _run_direct_company_search(company: str, session_id: str) -> dict:
+    return _run_direct_search({"company": company}, session_id)
 
 
 def _normalize_many(candidates: list | tuple, limit: int = 8) -> list[dict]:
@@ -448,6 +619,14 @@ def ask_agent(message: str, session_id: str) -> dict:
 
     if _is_ambiguous_all_request(message) and preserved_company:
         return _run_direct_company_search(preserved_company, session_id)
+
+    direct_filter = _build_direct_filter(message, preserved_company)
+    has_direct_constraints = any(
+        direct_filter.get(key)
+        for key in ("type", "fuel", "max_price", "sort_by")
+    )
+    if has_direct_constraints and _is_search_or_recommendation(message):
+        return _run_direct_search(direct_filter, session_id)
 
     if _is_simple_company_recommendation(message, preserved_company):
         return _run_direct_company_search(preserved_company, session_id)

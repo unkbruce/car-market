@@ -5,6 +5,9 @@ const CARS_COLLECTION = 'cars';
 const NUMERIC_FIELDS = ['price', 'year', 'mileage'];
 const REQUIRED_FIELDS = ['name', 'company', 'price', 'year'];
 const SEARCH_NUMERIC_FIELDS = ['minPrice', 'maxPrice', 'minYear', 'maxYear', 'minMileage', 'maxMileage'];
+const SEARCH_SORT_FIELDS = new Set(['price', 'year', 'mileage', 'createdAt']);
+const DEFAULT_SEARCH_LIMIT = 20;
+const MAX_SEARCH_LIMIT = 50;
 const MIN_IMAGE_ERROR_MESSAGE = '차량 이미지를 최소 1장 이상 선택해주세요.';
 
 function getCarsCollection() {
@@ -177,6 +180,23 @@ function parseSearchNumber(value, fieldName) {
   return parsedValue;
 }
 
+function parseSearchSort(query) {
+  const requestedSortBy = typeof query.sortBy === 'string' ? query.sortBy : '';
+  const requestedSortOrder = typeof query.sortOrder === 'string' ? query.sortOrder.toLowerCase() : '';
+  const sortBy = SEARCH_SORT_FIELDS.has(requestedSortBy) ? requestedSortBy : 'createdAt';
+  const sortOrder = requestedSortOrder === 'asc' ? 1 : -1;
+  const parsedLimit = parseSearchNumber(query.limit, 'limit');
+  const limit = Math.min(
+    Math.max(parsedLimit === undefined ? DEFAULT_SEARCH_LIMIT : parsedLimit, 1),
+    MAX_SEARCH_LIMIT,
+  );
+
+  return {
+    sort: { [sortBy]: sortOrder },
+    limit,
+  };
+}
+
 function normalizeSearchValues(value) {
   if (value === undefined) {
     return [];
@@ -314,7 +334,8 @@ export async function getCars(req, res) {
 export async function searchCars(req, res) {
   try {
     const filter = buildSearchFilter(req.query);
-    const cars = await getCarsCollection().find(filter).sort({ createdAt: -1 }).toArray();
+    const { sort, limit } = parseSearchSort(req.query);
+    const cars = await getCarsCollection().find(filter).sort(sort).limit(limit).toArray();
 
     return res.json({
       success: true,
