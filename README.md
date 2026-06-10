@@ -1,6 +1,8 @@
-# Car Market
+# CarMarket
 
-실시간 중고차 매물 검색, 딜러 차량 관리, 샘플/업로드 이미지 관리, Firebase 인증, Socket.io 상담 기능을 포함한 중고차 마켓 MVP입니다.
+CarMarket은 중고차 등록, 검색, 상세 조회, 실시간 상담 기능과 AI 차량 상담 기능을 제공하는 웹 서비스입니다.
+
+AI 상담은 LangGraph 기반 Agent가 사용자의 자연어 조건을 분석하고, 기존 CarMarket REST API를 Tool로 호출해 실제 등록 차량을 추천하는 구조입니다. Python Agent 서버는 MongoDB에 직접 접근하지 않고, Node.js API를 통해서만 차량 데이터를 조회합니다.
 
 ![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
 ![Vite](https://img.shields.io/badge/Vite-2F2F46?style=flat&logo=vite&logoColor=FFD62E)
@@ -10,13 +12,69 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-11231A?style=flat&logo=mongodb&logoColor=47A248)
 ![Firebase](https://img.shields.io/badge/Firebase-1F2937?style=flat&logo=firebase&logoColor=FFCA28)
 ![Socket.io](https://img.shields.io/badge/Socket.io-111827?style=flat&logo=socketdotio&logoColor=FFFFFF)
-![Multer](https://img.shields.io/badge/Multer-334155?style=flat)
+![FastAPI](https://img.shields.io/badge/FastAPI-0F172A?style=flat&logo=fastapi&logoColor=009688)
+![LangGraph](https://img.shields.io/badge/LangGraph-111827?style=flat)
 ![Render](https://img.shields.io/badge/Render-111827?style=flat&logo=render&logoColor=46E3B7)
 
-배포 주소:
+## 배포 주소
 
 - Frontend: [https://car-market-qxf3.onrender.com](https://car-market-qxf3.onrender.com)
 - Backend: [https://car-market-server.onrender.com](https://car-market-server.onrender.com)
+
+## 주요 기능
+
+기본 기능:
+
+- 차량 목록 조회
+- 차량 조건 검색
+- 차량 상세 조회
+- 차량 등록, 수정, 삭제
+- 로그인, 회원가입
+- 구매자와 딜러 간 실시간 채팅 상담
+- 차량 이미지 업로드 및 샘플 이미지 선택
+
+AI 상담 기능:
+
+- 제조사, 차종, 연료, 가격, 연식, 주행거리 조건 검색
+- 가격순, 연식순, 주행거리순 정렬
+- 실제 등록 차량 기반 추천
+- 추천 차량 카드 표시
+- 같은 조건 반복 시 다양한 차량 추천
+- 다른 차량 추천 시 이전 추천 차량 제외
+- 첫 번째 차량 상세 조회
+- 첫 번째와 두 번째 차량 비교
+- 딜러 문의 메시지 초안 작성
+- 세션 기반 대화 문맥 유지
+
+## 전체 아키텍처
+
+```text
+React Client
+    ↓
+Node.js Express API
+    ↓
+MongoDB Atlas
+
+React Client
+    ↓
+Node.js /api/agent/chat
+    ↓
+FastAPI Agent Server
+    ↓
+LangGraph Agent
+    ↓
+CarMarket REST API Tool
+    ↓
+Node.js Express API
+    ↓
+MongoDB Atlas
+```
+
+- React는 기존 Axios 인스턴스를 통해 Node API를 호출합니다.
+- Node 서버는 일반 REST API와 AI 상담 프록시 역할을 함께 담당합니다.
+- FastAPI Agent 서버는 LangGraph Agent를 실행합니다.
+- AI Agent는 MongoDB에 직접 연결하지 않고, 기존 Node REST API를 Tool로 호출합니다.
+- 차량 추천 카드의 데이터는 AI가 생성한 값이 아니라 실제 CarMarket API 조회 결과에서 가져옵니다.
 
 ## 기술 스택
 
@@ -35,244 +93,178 @@ Backend:
 
 - Node.js
 - Express
-- MongoDB Native Driver
 - MongoDB Atlas
-- Multer
+- MongoDB Native Driver
 - Socket.io
+- Multer
 - dotenv
 - cors
+
+AI Agent:
+
+- Python
+- FastAPI
+- LangChain
+- LangGraph
+- OpenAI API
+- LangSmith 선택 사용
 
 Deployment:
 
 - Render
 
-## 주요 기능
+## 폴더 구조
 
-인증 및 권한:
-
-- Firebase Authentication 기반 회원가입, 로그인, 로그아웃
-- 회원가입 시 `buyer` 또는 `dealer` 역할로 구분
-- MongoDB Atlas에 사용자 프로필 저장
-- 딜러는 본인이 등록한 차량만 수정/삭제 가능
-
-차량 목록:
-
-- 차량 목록 조회 및 상세 조회
-- 차량명, 제조사, 차종, 연식, 가격, 주행거리, 지역, 연료, 변속기 필터
-- 최신순, 낮은 가격순, 높은 가격순, 최신 연식순, 낮은 주행거리순 정렬
-- 검색/필터 결과 기준 9개 단위 페이지네이션
-- 반응형 차량 카드 그리드: 데스크톱 3열, 태블릿 2열, 모바일 1열
-- 차량 카드 전체 클릭으로 상세페이지 이동
-- 카드 내 상담하기 버튼은 기존 상담방 생성 흐름 유지
-
-차량 등록/수정:
-
-- 딜러 차량 등록, 수정, 삭제
-- 차량명, 제조사, 가격, 연식, 차종, 연료, 주행거리, 지역, 변속기, 외장 색상, 설명 입력
-- 외장 색상은 직접 입력 방식으로 관리
-- 직접 파일 업로드와 샘플 이미지 선택 지원
-- 등록/수정 화면 모두 샘플 이미지 선택 가능
-- `client/public/images/cars/`의 샘플 이미지 사용
-- `client/src/data/sampleCarImages.js`에서 샘플 이미지 목록 관리
-- 차량 등록 및 수정 시 최소 1장 이상의 이미지 필요
-- 기존 이미지, 직접 업로드 이미지, 샘플 이미지를 합산해 검증
-- 최종 이미지 수는 최소 1장, 최대 8장
-- 이미지 개별 추가/삭제
-- 샘플 이미지는 클릭 순서대로 선택되고 `imageUrls` 배열에 저장
-- 첫 번째 이미지를 대표 이미지 `imageUrl`로 저장
-
-차량 상세:
-
-- 주요 스펙, 요약 카드, 상세 설명 표시
-- 상세 이미지 썸네일 선택
-- 이전/다음 화살표로 이미지 순환
-- 키보드 좌우 방향키 이미지 이동
-- 모바일 터치 스와이프 이미지 이동
-- 이미지가 1장일 때 화살표 숨김
-- 판매자 본인 화면에서는 상담 버튼 대신 수정/삭제 버튼 표시
-
-상담:
-
-- 구매자와 딜러의 상담방 목록
-- 차량 카드 또는 상세페이지에서 상담방 생성/이동
-- Socket.io 기반 실시간 메시지
-- 메시지 MongoDB 저장
-- Enter 전송, Shift+Enter 줄바꿈
-- 구매자와 딜러 모두 상담방 나가기 가능
-- 상담방 나가기 시 해당 사용자의 상담 목록에서만 숨김
-- 상대방의 상담 목록과 기존 메시지는 유지
-- 같은 차량에서 다시 상담하면 기존 상담방이 다시 활성화됨
-- 딜러 온라인/오프라인 상태 표시
-- 딜러 온라인 상태는 채팅방 화면에서만 표시
-
-AI Agent 확장:
-
-- AI 자동응답은 구현 완료 상태가 아닙니다.
-- 상담 메시지 처리 구조를 `server/src/services/chatMessageHandler.js`로 분리해 AI Agent 확장을 준비했습니다.
-
-## 프로젝트 문서
-
-| 문서 | Markdown | PDF |
-|---|---|---|
-| 요구사항 정의서 | [보기](./docs/requirements/requirements.md) | [보기](./docs/requirements/requirements.pdf) |
-| 와이어프레임 | [보기](./docs/wireframes/wireframes.md) | [보기](./docs/wireframes/wireframes.pdf) |
-
-- 요구사항 정의서에는 기능 요구사항, 화면·데이터·API 요구사항, 비기능 요구사항과 구현 범위를 정리했습니다.
-- 와이어프레임에는 구매자와 딜러의 주요 화면 구조, 사용자 흐름, 반응형 동작을 정리했습니다.
-
-## 프로젝트 구조
-
-핵심 파일 위주 구조입니다.
+주요 폴더만 정리한 구조입니다.
 
 ```text
 car-market/
-├── client/
-│   ├── public/
-│   │   └── images/
-│   │       ├── car-placeholder.png
-│   │       └── cars/
-│   └── src/
-│       ├── api/
-│       │   ├── api.js
-│       │   └── socket.js
-│       ├── components/
-│       │   ├── CarCard.jsx
-│       │   ├── CarImagePlaceholder.jsx
-│       │   ├── Header.jsx
-│       │   └── StatusMessage.jsx
-│       ├── context/
-│       │   └── AuthContext.jsx
-│       ├── data/
-│       │   └── sampleCarImages.js
-│       ├── firebase/
-│       │   └── firebase.js
-│       ├── pages/
-│       │   ├── CarListPage.jsx
-│       │   ├── CarDetailPage.jsx
-│       │   ├── CarNewPage.jsx
-│       │   ├── CarEditPage.jsx
-│       │   ├── ChatListPage.jsx
-│       │   ├── ChatPage.jsx
-│       │   ├── LoginPage.jsx
-│       │   └── RegisterPage.jsx
-│       └── utils/
-│           ├── carOptions.js
-│           ├── chat.js
-│           └── formatters.js
-├── server/
-│   └── src/
-│       ├── config/
-│       │   ├── cors.js
-│       │   └── db.js
-│       ├── controllers/
-│       │   ├── carController.js
-│       │   ├── chatController.js
-│       │   └── userController.js
-│       ├── middleware/
-│       │   └── upload.js
-│       ├── routes/
-│       │   ├── cars.js
-│       │   ├── chats.js
-│       │   └── users.js
-│       ├── services/
-│       │   └── chatMessageHandler.js
-│       ├── app.js
-│       ├── server.js
-│       └── socket.js
-├── docs/
-│   ├── requirements/
-│   │   ├── requirements.md
-│   │   ├── requirements.html
-│   │   └── requirements.pdf
-│   ├── wireframes/
-│   │   ├── wireframes.md
-│   │   ├── wireframes.html
-│   │   └── wireframes.pdf
-│   └── screenshots/
-│       ├── car-list.png
-│       ├── car-detail-buyer.png
-│       ├── car-detail-dealer.png
-│       ├── car-register-form.png
-│       ├── car-register-images.png
-│       └── realtime-chat.png
-└── README.md
+├─ client/
+│  ├─ public/images/
+│  └─ src/
+│     ├─ api/
+│     ├─ components/
+│     ├─ context/
+│     ├─ data/
+│     ├─ firebase/
+│     ├─ pages/
+│     └─ utils/
+├─ server/
+│  └─ src/
+│     ├─ config/
+│     ├─ controllers/
+│     ├─ middleware/
+│     ├─ routes/
+│     ├─ services/
+│     ├─ app.js
+│     ├─ server.js
+│     └─ socket.js
+├─ ai-agent-server/
+│  ├─ main.py
+│  ├─ agent.py
+│  ├─ tools.py
+│  ├─ normalizers.py
+│  ├─ query_parser.py
+│  ├─ recommendation.py
+│  ├─ followup_actions.py
+│  ├─ session_store.py
+│  ├─ response_formatter.py
+│  ├─ requirements.txt
+│  └─ .env.example
+├─ docs/
+└─ README.md
 ```
 
-## 로컬 실행
+AI Agent 주요 파일:
 
-의존성 설치:
+- `main.py`: FastAPI 앱, CORS, `/agent/chat` 엔드포인트
+- `agent.py`: LangGraph 실행 및 전체 상담 흐름 조정
+- `tools.py`: 기존 CarMarket REST API를 호출하는 LangChain Tool
+- `normalizers.py`: 제조사, 차종, 연료, 숫자, 차량 데이터 정규화
+- `query_parser.py`: 사용자 문장에서 검색 조건, 정렬, 행동 추출
+- `recommendation.py`: 추천 다양성, 정렬, 차량 선택
+- `followup_actions.py`: 다른 차량, 상세, 비교, 딜러 메시지 처리
+- `session_store.py`: 세션별 추천 상태와 문맥 저장
+- `response_formatter.py`: 사용자에게 보여줄 답변 텍스트 생성
+
+## 실행 방법
+
+Node 서버:
 
 ```bash
 cd server
 npm install
-
-cd ../client
-npm install
+npm start
 ```
 
-서버 실행:
+FastAPI AI 서버 Windows:
 
 ```bash
-cd server
-npm run dev
+cd ai-agent-server
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
 ```
 
-클라이언트 실행:
+FastAPI AI 서버 macOS/Linux:
+
+```bash
+cd ai-agent-server
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+React:
 
 ```bash
 cd client
+npm install
 npm run dev
 ```
 
-기본 로컬 주소:
-
-- Backend: `http://localhost:3000`
-- Frontend: `http://localhost:5173`
-- Health check: `GET http://localhost:3000/api/health`
-
-## 환경 변수
-
-실제 값과 비밀정보는 저장소에 노출하지 않습니다. 로컬과 Render 환경 변수에 각각 설정합니다.
-
-Frontend:
+기본 주소:
 
 ```text
-VITE_API_BASE_URL
-VITE_FIREBASE_API_KEY
-VITE_FIREBASE_AUTH_DOMAIN
-VITE_FIREBASE_PROJECT_ID
-VITE_FIREBASE_STORAGE_BUCKET
-VITE_FIREBASE_MESSAGING_SENDER_ID
-VITE_FIREBASE_APP_ID
+React: http://localhost:5173
+Node API: http://localhost:3000
+FastAPI: http://localhost:8000
+Swagger: http://localhost:8000/docs
 ```
 
-Backend:
+## 환경변수
+
+실제 API 키와 비밀번호는 저장소에 커밋하지 않습니다. 각 폴더의 `.env.example`을 기준으로 `.env`를 작성합니다.
+
+`server/.env.example`:
+
+```env
+PORT=3000
+MONGODB_URI=
+DB_NAME=car_market
+CLIENT_URL=http://localhost:5173
+AGENT_API_BASE=http://localhost:8000
+```
+
+`ai-agent-server/.env.example`:
+
+```env
+OPENAI_API_KEY=
+OPENAI_MODEL=
+CARMARKET_API_BASE=http://localhost:3000/api
+CLIENT_URL=http://localhost:5173
+LANGSMITH_TRACING=false
+LANGSMITH_API_KEY=
+LANGSMITH_PROJECT=carmarket-agent
+```
+
+Client에서 사용하는 환경변수:
+
+```env
+VITE_API_BASE_URL=http://localhost:3000
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+```
+
+## AI 상담 테스트 질문
 
 ```text
-PORT
-MONGODB_URI
-DB_NAME
-CLIENT_URL
+기아차 추천해주세요
+2000만원 이하 기아 SUV 추천해줘
+SUV 비싼 가격순 추천해줘
+최신 연식 SUV 추천해줘
+주행거리 짧은 전기차 추천해줘
+다른 기아차도 알려주세요
+첫 번째 차량 상세 정보 알려줘
+첫 번째와 두 번째 차량 비교해줘
+첫 번째 차량 딜러에게 사고 이력과 추가 비용을 묻는 메시지 작성해줘
 ```
-
-`CLIENT_URL`은 CORS 허용 origin입니다. 여러 origin이 필요하면 콤마로 구분합니다.
-
-## 데이터 저장
-
-MongoDB Atlas 컬렉션:
-
-- `cars`
-- `users`
-- `chat_rooms`
-- `messages`
-
-차량 이미지 관련 필드:
-
-- `imageUrl`: 대표 이미지
-- `imageUrls`: 전체 이미지 URL 배열
-- `imageNames`: 이미지 파일명 배열
-
-샘플 이미지는 `client/public/images/cars/`의 프론트 정적 파일로 배포되어 유지되며, MongoDB에는 해당 정적 파일 경로를 문자열로 저장합니다. 직접 업로드 이미지는 Multer를 통해 Render 서버 로컬 파일 시스템에 저장하고, MongoDB에는 이미지 URL을 저장합니다.
 
 ## API 요약
 
@@ -280,6 +272,7 @@ Health:
 
 ```text
 GET /api/health
+GET /health
 ```
 
 Cars:
@@ -291,6 +284,13 @@ GET /api/cars/:id
 POST /api/cars
 PUT /api/cars/:id
 DELETE /api/cars/:id
+```
+
+Agent:
+
+```text
+POST /api/agent/chat
+POST /agent/chat
 ```
 
 Users:
@@ -311,8 +311,6 @@ POST /api/chats/rooms/:roomId/messages
 PATCH /api/chats/rooms/:roomId/leave
 ```
 
-Socket.io의 `leave-room`은 화면 이탈 시 소켓 방에서 빠지는 이벤트입니다. 사용자가 상담 목록에서 방을 정리하는 기능은 별도 REST API로 처리하며, 상담방과 메시지는 삭제하지 않고 사용자별 나가기 상태만 관리합니다. 한쪽 사용자가 나가도 상대방의 상담방과 기존 메시지는 유지됩니다.
-
 Socket.io 이벤트:
 
 - `join-room`
@@ -322,93 +320,67 @@ Socket.io 이벤트:
 - `dealer-online`
 - `dealer-offline`
 
-## Render 배포
+## 프로젝트 문서
 
-Backend:
+| 문서 | Markdown | PDF |
+|---|---|---|
+| 요구사항 정의서 | [보기](./docs/requirements/requirements.md) | [보기](./docs/requirements/requirements.pdf) |
+| 와이어프레임 | [보기](./docs/wireframes/wireframes.md) | [보기](./docs/wireframes/wireframes.pdf) |
+
+## 주요 화면
+
+차량 목록과 필터:
+
+<img src="docs/screenshots/car-list.png" alt="차량 목록과 필터 화면" width="900" />
+
+차량 상세:
+
+<img src="docs/screenshots/car-detail-buyer.png" alt="구매자 차량 상세 화면" width="900" />
+
+딜러 차량 관리:
+
+<img src="docs/screenshots/car-detail-dealer.png" alt="딜러 차량 관리 화면" width="900" />
+
+차량 등록:
+
+<img src="docs/screenshots/car-register-form.png" alt="딜러 차량 등록 기본 정보 입력 화면" width="900" />
+
+차량 이미지 선택:
+
+<img src="docs/screenshots/car-register-images.png" alt="딜러 차량 등록 이미지 선택 화면" width="900" />
+
+실시간 상담:
+
+<img src="docs/screenshots/realtime-chat.png" alt="구매자와 딜러 실시간 상담 화면" width="900" />
+
+## 배포 메모
+
+Backend Render 설정:
 
 - Root Directory: `server`
 - Build Command: `npm install`
 - Start Command: `npm start`
-- 환경 변수: `MONGODB_URI`, `DB_NAME`, `CLIENT_URL`
-- Render에서는 `PORT` 환경 변수가 자동으로 제공됩니다.
+- 주요 환경변수: `MONGODB_URI`, `DB_NAME`, `CLIENT_URL`, `AGENT_API_BASE`
 
-Frontend:
+Frontend Render 설정:
 
 - Root Directory: `client`
 - Build Command: `npm install && npm run build`
 - Publish Directory: `dist`
-- 환경 변수: `VITE_API_BASE_URL`, `VITE_FIREBASE_*`
+- 주요 환경변수: `VITE_API_BASE_URL`, `VITE_FIREBASE_*`
+- React Router Rewrite: `/*` → `/index.html`
 
-추가 설정:
+이미지 업로드 관련 주의:
 
-- `VITE_API_BASE_URL`은 배포된 Backend 주소로 설정
-- Backend `CLIENT_URL`은 배포된 Frontend 주소로 설정
-- Firebase Authentication Authorized domains에 배포 도메인 등록
-- React Router Rewrite 설정: `/*` → `/index.html`
-- MongoDB Atlas Network Access와 Database Access 설정 확인
-
-Render 무료 서버 주의:
-
-- `client/public/images/cars/`의 샘플 이미지는 프론트 정적 파일로 배포되어 유지됩니다.
-- Multer로 직접 업로드한 이미지는 Render 서버 로컬 파일 시스템에 저장됩니다.
-- Render 무료 환경에서는 재배포, 재시작, 인스턴스 교체 시 직접 업로드 이미지가 사라질 수 있습니다.
+- 샘플 차량 이미지는 `client/public/images/cars/`의 정적 파일을 사용합니다.
+- Multer로 직접 업로드한 이미지는 서버 로컬 파일 시스템에 저장됩니다.
+- Render 무료 환경에서는 재배포 또는 인스턴스 교체 시 직접 업로드한 파일이 사라질 수 있습니다.
 - 운영 환경에서는 S3, Cloudinary, Firebase Storage 같은 외부 스토리지 연동이 필요합니다.
 
-## 샘플 이미지 관리
+## 제한사항
 
-샘플 차량 이미지는 다음 위치를 기준으로 관리합니다.
-
-```text
-client/public/images/cars/
-client/src/data/sampleCarImages.js
-```
-
-샘플 차량 추가 방법:
-
-1. `client/public/images/cars/차량-폴더명/`에 이미지 파일을 추가합니다.
-2. `client/src/data/sampleCarImages.js`에 id, label, imageUrls를 추가합니다.
-3. `imageUrls`는 브라우저에서 접근 가능한 `/images/cars/...` 경로로 작성합니다.
-4. 한 차량당 최대 8장까지 선택될 수 있습니다.
-
-## 주요 화면
-
-### 차량 목록 및 필터
-
-차량 검색, 정렬, 제조사 및 조건별 필터, 반응형 차량 카드 화면을 확인할 수 있습니다.
-
-<img src="docs/screenshots/car-list.png" alt="차량 목록 및 필터 화면" width="900" />
-
-### 구매자 차량 상세
-
-차량 이미지 갤러리, 주요 스펙, 상세 설명, 상담하기 기능을 확인할 수 있습니다.
-
-<img src="docs/screenshots/car-detail-buyer.png" alt="구매자 차량 상세 화면" width="900" />
-
-### 딜러 차량 관리
-
-딜러가 본인 차량을 조회하고 수정·삭제할 수 있는 화면입니다.
-
-<img src="docs/screenshots/car-detail-dealer.png" alt="딜러 차량 관리 화면" width="900" />
-
-### 딜러 차량 등록
-
-차량 기본 정보와 상세 설명을 입력하는 화면입니다.
-
-<img src="docs/screenshots/car-register-form.png" alt="딜러 차량 등록 기본 정보 입력 화면" width="900" />
-
-직접 업로드 또는 샘플 이미지를 최소 1장, 최대 8장까지 선택할 수 있습니다.
-
-<img src="docs/screenshots/car-register-images.png" alt="딜러 차량 등록 이미지 선택 화면" width="900" />
-
-### 구매자와 딜러 실시간 상담
-
-구매자와 딜러가 같은 상담방에서 실시간 메시지를 주고받는 화면입니다. 딜러 온라인 상태와 좌우로 구분된 메시지 UI를 확인할 수 있습니다.
-
-<img src="docs/screenshots/realtime-chat.png" alt="구매자와 딜러 실시간 상담 화면" width="900" />
-
-## 구현 메모
-
-- 관리자 기능은 구현되어 있지 않습니다.
-- AI Agent는 구현 완료가 아니라 상담 처리 구조 분리와 확장 준비 상태입니다.
-- 검색, 정렬, 페이지네이션은 현재 프론트엔드 중심으로 동작합니다.
-- 서버 API 구조는 REST API와 Socket.io 이벤트를 함께 사용합니다.
+- AI 세션 상태는 메모리 기반이라 FastAPI 서버 재시작 시 초기화됩니다.
+- 추천 결과는 실제 등록 차량 데이터에 의존합니다.
+- 차량 데이터의 `company`, `type`, `fuel` 값이 표준화되어 있어야 검색 정확도가 높습니다.
+- OpenAI API 사용을 위해 별도 API 키와 사용 가능한 크레딧이 필요합니다.
+- LangSmith 추적은 선택 사항입니다.
