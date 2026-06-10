@@ -11,7 +11,14 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from followup_actions import handle_followup_recommendation, handle_referenced_action
-from normalizers import companies_for_origin, matches_origin_constraint, matches_type_constraint, normalize_many, normalize_text
+from normalizers import (
+    companies_for_origin,
+    matches_origin_constraint,
+    matches_type_constraint,
+    normalize_many,
+    normalize_text,
+    parse_numeric_value,
+)
 from query_parser import (
     build_agent_message,
     build_query_signature,
@@ -141,11 +148,15 @@ def _run_direct_search(filters: dict, session_id: str, request_type: str = "new_
     broad_types = prepared_filters.get("_broad_types") if isinstance(prepared_filters.get("_broad_types"), list) else []
     sort_by = str(prepared_filters.get("_sort_by") or "")
     sort_order = str(prepared_filters.get("_sort_order") or "")
+    min_price = prepared_filters.get("min_price")
+    max_price = prepared_filters.get("max_price")
     candidates = [
         car
         for car in normalized_cars
         if matches_type_constraint(car, exact_type, broad_types)
         and matches_origin_constraint(car, origin)
+        and (min_price is None or (parse_numeric_value(car.get("price")) is not None and parse_numeric_value(car.get("price")) >= int(min_price)))
+        and (max_price is None or (parse_numeric_value(car.get("price")) is not None and parse_numeric_value(car.get("price")) <= int(max_price)))
     ]
     diversity_enabled = should_apply_diversity(prepared_filters, request_type)
     shuffled_candidates = candidates
@@ -196,6 +207,8 @@ def _run_direct_search(filters: dict, session_id: str, request_type: str = "new_
         print(f"detected exact type: {exact_type}")
         print(f"detected broad types: {','.join(broad_types)}")
         print(f"detected origin: {origin}")
+        print(f"detected min_price: {min_price if min_price is not None else ''}")
+        print(f"detected max_price: {max_price if max_price is not None else ''}")
         print(f"normalized companies: {prepared_filters.get('companies', '')}")
         print(f"detected sort_by: {sort_by}")
         print(f"detected sort_order: {sort_order}")
@@ -399,9 +412,16 @@ def ask_agent(message: str, session_id: str) -> dict:
         return _finish_agent_result(_run_direct_company_search(preserved_company, session_id), started_at)
 
     direct_filter = parse_search_filters(message, preserved_company)
+    if direct_filter.get("_invalid_price_range"):
+        return _finish_agent_result({
+            "answer": "최소 가격이 최대 가격보다 큽니다.\n가격 범위를 다시 확인해주세요.",
+            "selected_car_ids": [],
+            "cars": [],
+        }, started_at)
+
     has_direct_constraints = any(
         direct_filter.get(key)
-        for key in ("type", "fuel", "origin", "max_price", "min_year", "sort_by")
+        for key in ("type", "fuel", "origin", "min_price", "max_price", "min_year", "sort_by")
     )
     if has_direct_constraints and is_search_or_recommendation(message):
         return _finish_agent_result(_run_direct_search(direct_filter, session_id), started_at)

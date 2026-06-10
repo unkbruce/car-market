@@ -361,6 +361,23 @@ def _to_sort_number(value: Any) -> float | None:
         return None
 
 
+def _matches_price_range(value: Any, min_price: Optional[int], max_price: Optional[int]) -> bool:
+    if min_price is None and max_price is None:
+        return True
+
+    parsed_value = _to_sort_number(value)
+    if parsed_value is None:
+        return False
+
+    if min_price is not None and parsed_value < min_price:
+        return False
+
+    if max_price is not None and parsed_value > max_price:
+        return False
+
+    return True
+
+
 def _to_sort_timestamp(value: Any) -> float | None:
     if value is None or value == "":
         return None
@@ -561,6 +578,7 @@ def search_cars(
         print(f"Tool call type parameter: {params.get('type', '')}")
         print(f"Node request companies: {params.get('companies', '')}")
         print(f"Node request sortBy/sortOrder: {params.get('sortBy', '')}/{params.get('sortOrder', '')}")
+        print(f"Node request minPrice/maxPrice: {params.get('minPrice', '')}/{params.get('maxPrice', '')}")
         print(f"excluded car ids count: {len(excluded_ids)}")
 
     try:
@@ -585,6 +603,7 @@ def search_cars(
         and _matches_origin(car.get("company"), normalized_origin)
         and _matches_normalized_query(car.get("type"), normalized_type)
         and _matches_normalized_query(car.get("fuel"), normalized_fuel)
+        and _matches_price_range(car.get("price"), min_price, max_price)
         and str(car.get("id") or car.get("_id") or "") not in excluded_ids
     ]
     sorted_data = _sort_cars(filtered_data, normalized_sort_by, normalized_sort_order)
@@ -598,6 +617,8 @@ def search_cars(
         print(f"Tool result top prices after sorting: {after_prices}")
         print(f"Python sorted years before sorting: {before_years}")
         print(f"Python sorted years: {after_years}")
+        print(f"Tool result prices before filtering: {[car.get('price') for car in data[:5] if isinstance(car, dict)]}")
+        print(f"Tool result prices after filtering: {[car.get('price') for car in sorted_data[:5]]}")
         print(f"Tool result count before filtering: {before_filter_count}")
         print(f"result count before origin filter: {before_filter_count}")
         print(f"result count after origin filter: {len(filtered_data)}")

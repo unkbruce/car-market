@@ -1,7 +1,7 @@
 import re
 from typing import Any
 
-from normalizers import contains_any, normalize_text
+from normalizers import contains_any, normalize_text, parse_korean_price_to_manwon
 from tools import COMPANY_ALIASES, normalize_company_query, normalize_fuel_query, normalize_type_query
 
 Filters = dict[str, Any]
@@ -94,7 +94,111 @@ def detect_fuel(message: str) -> str:
     return ""
 
 
+def _price_expressions(message: str) -> list[tuple[int, int, str]]:
+    price_token = r"\d+(?:\.\d+)?억(?:원)?(?:\d+천)?(?:\d+백)?(?:\d+만?원?)?|\d+천(?:\d+)?(?:만?원?)?|\d+(?:만(?:원)?)"
+    spaced_range = re.search(rf"({price_token})\s+({price_token})", str(message or "").replace(",", ""))
+    if spaced_range:
+        first = parse_korean_price_to_manwon(spaced_range.group(1))
+        second = parse_korean_price_to_manwon(spaced_range.group(2))
+        if first is not None and second is not None:
+            return [
+                (spaced_range.start(1), first, spaced_range.group(1)),
+                (spaced_range.start(2), second, spaced_range.group(2)),
+            ]
+
+    compact = re.sub(r"\s+", "", str(message or "").replace(",", ""))
+    range_match = re.search(r"(\d{2,6})[~-](\d{2,6})만원", compact)
+    if range_match:
+        return [
+            (range_match.start(1), int(range_match.group(1)), range_match.group(1)),
+            (range_match.start(2), int(range_match.group(2)), range_match.group(2)),
+        ]
+
+    patterns = (
+        r"\d+(?:\.\d+)?억(?:원)?(?:\d+천)?(?:\d+백)?(?:\d+만?원?)?",
+        r"\d+천(?:\d+)?(?:만?원?)?",
+        r"\d+(?:만(?:원)?)",
+    )
+    matches = []
+
+    for pattern in patterns:
+        for match in re.finditer(pattern, compact):
+            parsed = parse_korean_price_to_manwon(match.group(0))
+            if parsed is not None:
+                matches.append((match.start(), parsed, match.group(0)))
+
+    matches.sort(key=lambda item: item[0])
+    deduped = []
+    occupied = set()
+
+    for start, parsed, raw in matches:
+        span = set(range(start, start + len(raw)))
+        if occupied & span:
+            continue
+        occupied |= span
+        deduped.append((start, parsed, raw))
+
+    return deduped
+
+
+def parse_price_range(message: str) -> Filters:
+    compact = re.sub(r"\s+", "", str(message or "").replace(",", ""))
+    prices = _price_expressions(message)
+    result: Filters = {"min_price": None, "max_price": None}
+
+    if not prices:
+        return result
+
+    values = [price for _, price, _ in prices]
+    has_range = any(token in compact for token in ("사이", "범위", "에서", "부터", "~", "-")) and len(values) >= 2
+
+    if has_range:
+        result["min_price"] = min(values[0], values[1])
+        result["max_price"] = max(values[0], values[1])
+    else:
+        for index, (start, price, raw) in enumerate(prices):
+            next_start = prices[index + 1][0] if index + 1 < len(prices) else len(compact)
+            after = compact[start + len(raw):next_start]
+
+            if any(token in after for token in ("이상", "최소", "부터")):
+                result["min_price"] = price
+                continue
+
+            if "초과" in after:
+                result["min_price"] = price + 1
+                continue
+
+            if "미만" in after:
+                result["max_price"] = max(price - 1, 0)
+                continue
+
+            if any(token in after for token in ("이하", "최대", "까지", "넘지않는", "넘지않게")):
+                result["max_price"] = price
+                continue
+
+        if result["min_price"] is None and result["max_price"] is None:
+            price = values[0]
+
+            if any(token in compact for token in ("이상", "최소")):
+                result["min_price"] = price
+            elif "초과" in compact:
+                result["min_price"] = price + 1
+            elif "미만" in compact:
+                result["max_price"] = max(price - 1, 0)
+            elif any(token in compact for token in ("이하", "최대", "까지", "넘지않는", "넘지않게")):
+                result["max_price"] = price
+            elif len(values) >= 2:
+                result["min_price"] = min(values[0], values[1])
+                result["max_price"] = max(values[0], values[1])
+
+    return result
+
+
 def detect_max_price(message: str) -> int | None:
+    parsed_range = parse_price_range(message)
+    if parsed_range.get("max_price") is not None:
+        return parsed_range["max_price"]
+
     patterns = (
         r"(\d{2,6})\s*만원\s*(?:이하|까지|미만|아래)",
         r"(\d{2,6})\s*만\s*원?\s*(?:이하|까지|미만|아래)",
@@ -106,6 +210,11 @@ def detect_max_price(message: str) -> int | None:
             return int(match.group(1))
 
     return None
+
+
+def detect_min_price(message: str) -> int | None:
+    parsed_range = parse_price_range(message)
+    return parsed_range.get("min_price")
 
 
 def detect_min_year(message: str) -> int | None:
@@ -234,13 +343,17 @@ def parse_search_filters(message: str, preserved_company: str) -> Filters:
     exact_type, broad_types = detect_type_constraints(message)
     type_query = exact_type or ",".join(broad_types)
     sort_by, sort_order = detect_sort(message)
+    price_range = parse_price_range(message)
+    min_price = price_range.get("min_price")
+    max_price = price_range.get("max_price")
 
     return {
         "company": preserved_company,
         "type": type_query,
         "fuel": detect_fuel(message),
         "origin": detect_origin(message),
-        "max_price": detect_max_price(message),
+        "min_price": min_price,
+        "max_price": max_price,
         "min_year": detect_min_year(message),
         "sort_by": sort_by,
         "sort_order": sort_order,
@@ -249,6 +362,7 @@ def parse_search_filters(message: str, preserved_company: str) -> Filters:
         "_broad_types": broad_types,
         "_sort_by": sort_by,
         "_sort_order": sort_order,
+        "_invalid_price_range": min_price is not None and max_price is not None and min_price > max_price,
     }
 
 

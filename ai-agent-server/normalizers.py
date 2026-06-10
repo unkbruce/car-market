@@ -124,6 +124,60 @@ def parse_numeric_value(value: Any) -> int | None:
         return None
 
 
+def parse_korean_price_to_manwon(text: str) -> int | None:
+    value = str(text or "").strip()
+    if not value:
+        return None
+
+    compact = re.sub(r"\s+", "", value.replace(",", ""))
+    compact = compact.replace("원", "")
+    total = 0
+
+    eok_match = re.search(r"(\d+(?:\.\d+)?)억", compact)
+    if eok_match:
+        total += int(float(eok_match.group(1)) * 10000)
+        rest = compact[eok_match.end():]
+
+        cheon_match = re.search(r"(\d+)천", rest)
+        if cheon_match:
+            total += int(cheon_match.group(1)) * 1000
+            rest = rest[cheon_match.end():]
+
+        baek_match = re.search(r"(\d+)백", rest)
+        if baek_match:
+            total += int(baek_match.group(1)) * 100
+            rest = rest[baek_match.end():]
+
+        man_match = re.search(r"(\d+)만?", rest)
+        if man_match:
+            total += int(man_match.group(1))
+            return total
+
+        trailing_number = re.match(r"(\d+)", rest)
+        if trailing_number:
+            total += int(trailing_number.group(1))
+
+        return total if total > 0 else None
+
+    cheon_match = re.search(r"(\d+)천(?:만)?", compact)
+    if cheon_match:
+        total += int(cheon_match.group(1)) * 1000
+        rest = compact[cheon_match.end():]
+        trailing_number = re.match(r"(\d+)", rest)
+        if trailing_number:
+            total += int(trailing_number.group(1))
+        return total
+
+    manwon_match = re.search(r"(\d+)만", compact)
+    if manwon_match:
+        return int(manwon_match.group(1))
+
+    if re.fullmatch(r"\d+", compact):
+        return int(compact)
+
+    return None
+
+
 def normalize_car(car: Car) -> Car | None:
     car_id = car.get("id") or car.get("_id")
 
