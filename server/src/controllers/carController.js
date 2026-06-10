@@ -8,6 +8,10 @@ const SEARCH_NUMERIC_FIELDS = ['minPrice', 'maxPrice', 'minYear', 'maxYear', 'mi
 const SEARCH_SORT_FIELDS = new Set(['price', 'year', 'mileage', 'createdAt']);
 const DEFAULT_SEARCH_LIMIT = 20;
 const MAX_SEARCH_LIMIT = 50;
+
+function isDevelopment() {
+  return process.env.NODE_ENV === 'development' || process.env.ENV === 'development';
+}
 const MIN_IMAGE_ERROR_MESSAGE = '차량 이미지를 최소 1장 이상 선택해주세요.';
 
 function getCarsCollection() {
@@ -23,6 +27,19 @@ function sendError(res, statusCode, message) {
 
 function isValidObjectId(id) {
   return /^[0-9a-fA-F]{24}$/.test(id) && ObjectId.isValid(id);
+}
+
+function parseObjectIds(value) {
+  if (value === undefined) {
+    return [];
+  }
+
+  const values = Array.isArray(value) ? value : String(value).split(',');
+
+  return values
+    .map((item) => String(item).trim())
+    .filter((item) => isValidObjectId(item))
+    .map((item) => new ObjectId(item));
 }
 
 function normalizeCarPayload(payload) {
@@ -190,9 +207,12 @@ function parseSearchSort(query) {
     Math.max(parsedLimit === undefined ? DEFAULT_SEARCH_LIMIT : parsedLimit, 1),
     MAX_SEARCH_LIMIT,
   );
+  const sort = sortBy === 'createdAt'
+    ? { createdAt: sortOrder }
+    : { [sortBy]: sortOrder, createdAt: -1, price: -1 };
 
   return {
-    sort: { [sortBy]: sortOrder },
+    sort,
     limit,
   };
 }
@@ -240,6 +260,7 @@ function buildSearchFilter(query) {
     minMileage,
     maxMileage,
     transmission,
+    excludeIds,
   } = query;
   const filter = {};
 
@@ -315,6 +336,14 @@ function buildSearchFilter(query) {
     }
   }
 
+  const excludedObjectIds = parseObjectIds(excludeIds);
+
+  if (excludedObjectIds.length > 0) {
+    filter._id = {
+      $nin: excludedObjectIds,
+    };
+  }
+
   return filter;
 }
 
@@ -336,6 +365,11 @@ export async function searchCars(req, res) {
     const filter = buildSearchFilter(req.query);
     const { sort, limit } = parseSearchSort(req.query);
     const cars = await getCarsCollection().find(filter).sort(sort).limit(limit).toArray();
+
+    if (isDevelopment()) {
+      console.log('Node result years:', cars.map((car) => car.year));
+      console.log('Node exclude ids count:', parseObjectIds(req.query.excludeIds).length);
+    }
 
     return res.json({
       success: true,

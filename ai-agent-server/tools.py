@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from datetime import datetime
 from typing import Any, Optional
 
 import httpx
@@ -239,6 +240,17 @@ def _matches_normalized_query(value: Any, normalized_query: Optional[str]) -> bo
     return comparable_value in allowed_values
 
 
+def _normalize_exclude_ids(exclude_ids: Optional[str]) -> set[str]:
+    if not exclude_ids:
+        return set()
+
+    return {
+        item.strip()
+        for item in str(exclude_ids).split(",")
+        if item.strip()
+    }
+
+
 def _normalize_sort_by(sort_by: Optional[str]) -> Optional[str]:
     if not sort_by:
         return None
@@ -284,6 +296,37 @@ def _to_sort_number(value: Any) -> float | None:
         return None
 
 
+def _to_sort_timestamp(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+
+    if isinstance(value, datetime):
+        return value.timestamp()
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return None
+
+
+def _desc_number(value: Any) -> float:
+    parsed_value = _to_sort_number(value)
+    return -(parsed_value or 0)
+
+
+def _asc_number(value: Any) -> float:
+    return _to_sort_number(value) or 0
+
+
+def _desc_timestamp(value: Any) -> float:
+    parsed_value = _to_sort_timestamp(value)
+    return -(parsed_value or 0)
+
+
 def _sort_cars(cars: list[dict[str, Any]], sort_by: Optional[str], sort_order: Optional[str]) -> list[dict[str, Any]]:
     if sort_by not in {"price", "year", "mileage"}:
         return cars
@@ -294,7 +337,11 @@ def _sort_cars(cars: list[dict[str, Any]], sort_by: Optional[str], sort_order: O
         cars,
         key=lambda car: (
             _to_sort_number(car.get(sort_by)) is None,
-            -(_to_sort_number(car.get(sort_by)) or 0) if reverse else (_to_sort_number(car.get(sort_by)) or 0),
+            _desc_number(car.get(sort_by)) if reverse else _asc_number(car.get(sort_by)),
+            _to_sort_timestamp(car.get("createdAt")) is None,
+            _desc_timestamp(car.get("createdAt")),
+            _to_sort_number(car.get("price")) is None,
+            _desc_number(car.get("price")),
         ),
     )
 
@@ -364,6 +411,7 @@ class SearchCarsInput(BaseModel):
     sort_by: Optional[str] = Field(default=None, description="정렬 기준: price, year, mileage, createdAt")
     sort_order: Optional[str] = Field(default=None, description="정렬 방향: asc 또는 desc")
     limit: Optional[int] = Field(default=None, description="검색 결과 제한. 최대 50")
+    exclude_ids: Optional[str] = Field(default=None, description="제외할 차량 ID 목록. 쉼표로 구분")
 
 
 class CarDetailInput(BaseModel):
@@ -398,6 +446,7 @@ def search_cars(
     sort_by: Optional[str] = None,
     sort_order: Optional[str] = None,
     limit: Optional[int] = None,
+    exclude_ids: Optional[str] = None,
 ) -> str:
     """CarMarket 차량 검색 API에서 실제 등록 차량을 검색한다."""
 
@@ -407,6 +456,7 @@ def search_cars(
     normalized_sort_by = _normalize_sort_by(sort_by)
     normalized_sort_order = _normalize_sort_order(sort_order)
     normalized_limit = _normalize_limit(limit)
+    excluded_ids = _normalize_exclude_ids(exclude_ids)
     raw_params = {
         "company": normalized_company,
         "keyword": keyword,
@@ -423,6 +473,7 @@ def search_cars(
         "sortBy": normalized_sort_by,
         "sortOrder": normalized_sort_order,
         "limit": normalized_limit,
+        "excludeIds": exclude_ids,
     }
     params = {
         key: value
@@ -435,6 +486,7 @@ def search_cars(
         print(f"normalized type: {normalized_type or ''}")
         print(f"Tool call type parameter: {params.get('type', '')}")
         print(f"Node request sortBy/sortOrder: {params.get('sortBy', '')}/{params.get('sortOrder', '')}")
+        print(f"excluded car ids count: {len(excluded_ids)}")
 
     try:
         response = httpx.get(f"{_api_base()}/cars/search", params=params, timeout=API_TIMEOUT_SECONDS)
@@ -457,17 +509,23 @@ def search_cars(
         if isinstance(car, dict)
         and _matches_normalized_query(car.get("type"), normalized_type)
         and _matches_normalized_query(car.get("fuel"), normalized_fuel)
+        and str(car.get("id") or car.get("_id") or "") not in excluded_ids
     ]
     sorted_data = _sort_cars(filtered_data, normalized_sort_by, normalized_sort_order)
 
     if _is_development():
         before_prices = [car.get("price") for car in filtered_data[:5]]
         after_prices = [car.get("price") for car in sorted_data[:5]]
+        before_years = [car.get("year") for car in filtered_data[:5]]
+        after_years = [car.get("year") for car in sorted_data[:5]]
         print(f"Tool result top prices before sorting: {before_prices}")
         print(f"Tool result top prices after sorting: {after_prices}")
+        print(f"Python sorted years before sorting: {before_years}")
+        print(f"Python sorted years: {after_years}")
         print(f"Tool result count before filtering: {before_filter_count}")
         print(f"Tool result count after filtering: {len(sorted_data)}")
         print(f"search result count: {len(sorted_data)}")
+        print(f"returned car ids: {','.join(str(car.get('id') or car.get('_id') or '') for car in sorted_data[:8])}")
 
     return _json({
         "success": True,

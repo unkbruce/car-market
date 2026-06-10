@@ -78,6 +78,7 @@ async def chat(request: ChatRequest):
 
     if is_development():
         print(f"FastAPI response cars count: {len(cars)}")
+        print(f"FastAPI response years: {[car.get('year') for car in cars if isinstance(car, dict)]}")
 
     return {
         "success": True,
