@@ -5,6 +5,80 @@ from tools import normalize_company_query, normalize_fuel_query, normalize_type_
 
 Car = dict[str, Any]
 
+DOMESTIC_COMPANIES = {
+    "HYUNDAI",
+    "KIA",
+    "GENESIS",
+    "KG MOBILITY",
+    "CHEVROLET",
+    "RENAULT",
+    "RENAULT KOREA",
+}
+
+IMPORTED_COMPANIES = {
+    "BMW",
+    "BENZ",
+    "MERCEDES-BENZ",
+    "AUDI",
+    "VOLVO",
+    "TESLA",
+    "PORSCHE",
+    "LAMBORGHINI",
+    "ROLLS_ROYCE",
+    "ROLLS-ROYCE",
+    "TOYOTA",
+    "LEXUS",
+    "HONDA",
+    "MINI",
+    "LAND ROVER",
+    "JEEP",
+    "FORD",
+    "VOLKSWAGEN",
+}
+
+
+def _company_key(company: Optional[str]) -> str:
+    return str(company or "").strip().upper().replace("-", "_")
+
+
+def _normalized_company_keys(company: Optional[str]) -> set[str]:
+    raw_key = _company_key(company)
+    normalized = normalize_company_query(company) or company or ""
+    keys = {
+        _company_key(value)
+        for value in str(normalized).split(",")
+        if str(value).strip()
+    }
+    if raw_key:
+        keys.add(raw_key)
+    return keys
+
+
+def is_domestic_company(company: Optional[str]) -> bool:
+    domestic_keys = {_company_key(value) for value in DOMESTIC_COMPANIES}
+    return bool(_normalized_company_keys(company) & domestic_keys)
+
+
+def is_imported_company(company: Optional[str]) -> bool:
+    imported_keys = {_company_key(value) for value in IMPORTED_COMPANIES}
+    return bool(_normalized_company_keys(company) & imported_keys)
+
+
+def companies_for_origin(origin: Optional[str]) -> list[str]:
+    if origin == "domestic":
+        return sorted(DOMESTIC_COMPANIES)
+    if origin == "imported":
+        return sorted(IMPORTED_COMPANIES)
+    return []
+
+
+def matches_origin_constraint(car: Car, origin: str) -> bool:
+    if origin == "domestic":
+        return is_domestic_company(car.get("company"))
+    if origin == "imported":
+        return is_imported_company(car.get("company"))
+    return True
+
 
 def normalize_text(value: str) -> str:
     return re.sub(r"\s+", "", str(value or "").lower())

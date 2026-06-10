@@ -8,6 +8,33 @@ const SEARCH_NUMERIC_FIELDS = ['minPrice', 'maxPrice', 'minYear', 'maxYear', 'mi
 const SEARCH_SORT_FIELDS = new Set(['price', 'year', 'mileage', 'createdAt']);
 const DEFAULT_SEARCH_LIMIT = 20;
 const MAX_SEARCH_LIMIT = 50;
+const ALLOWED_COMPANIES = new Set([
+  'HYUNDAI',
+  'KIA',
+  'GENESIS',
+  'KG MOBILITY',
+  'CHEVROLET',
+  'RENAULT',
+  'RENAULT KOREA',
+  'BMW',
+  'BENZ',
+  'MERCEDES-BENZ',
+  'AUDI',
+  'VOLVO',
+  'TESLA',
+  'PORSCHE',
+  'LAMBORGHINI',
+  'ROLLS_ROYCE',
+  'ROLLS-ROYCE',
+  'TOYOTA',
+  'LEXUS',
+  'HONDA',
+  'MINI',
+  'LAND ROVER',
+  'JEEP',
+  'FORD',
+  'VOLKSWAGEN',
+]);
 
 function isDevelopment() {
   return process.env.NODE_ENV === 'development' || process.env.ENV === 'development';
@@ -246,10 +273,25 @@ function buildTextFilter(value) {
   };
 }
 
+function buildCompaniesFilter(value) {
+  const values = normalizeSearchValues(value)
+    .map((item) => item.toUpperCase())
+    .filter((item) => ALLOWED_COMPANIES.has(item));
+
+  if (values.length === 0) {
+    return undefined;
+  }
+
+  return {
+    $in: values.map((item) => new RegExp(`^${escapeRegExp(item)}$`, 'i')),
+  };
+}
+
 function buildSearchFilter(query) {
   const {
     keyword,
     company,
+    companies,
     type,
     fuel,
     location,
@@ -276,7 +318,6 @@ function buildSearchFilter(query) {
   }
 
   const textFilters = {
-    company,
     type,
     fuel,
     location,
@@ -336,6 +377,12 @@ function buildSearchFilter(query) {
     }
   }
 
+  const companyFilter = buildTextFilter(company) || buildCompaniesFilter(companies);
+
+  if (companyFilter) {
+    filter.company = companyFilter;
+  }
+
   const excludedObjectIds = parseObjectIds(excludeIds);
 
   if (excludedObjectIds.length > 0) {
@@ -369,6 +416,8 @@ export async function searchCars(req, res) {
     if (isDevelopment()) {
       console.log('Node result years:', cars.map((car) => car.year));
       console.log('Node exclude ids count:', parseObjectIds(req.query.excludeIds).length);
+      console.log('Node request companies:', req.query.companies || '');
+      console.log('Node result companies:', cars.map((car) => car.company));
     }
 
     return res.json({

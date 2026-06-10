@@ -16,6 +16,35 @@ ALLOWED_SORT_BY = {"price", "year", "mileage", "createdAt"}
 ALLOWED_SORT_ORDER = {"asc", "desc"}
 DEFAULT_TOOL_LIMIT = 20
 MAX_TOOL_LIMIT = 50
+DOMESTIC_COMPANIES = {
+    "HYUNDAI",
+    "KIA",
+    "GENESIS",
+    "KG MOBILITY",
+    "CHEVROLET",
+    "RENAULT",
+    "RENAULT KOREA",
+}
+IMPORTED_COMPANIES = {
+    "BMW",
+    "BENZ",
+    "MERCEDES-BENZ",
+    "AUDI",
+    "VOLVO",
+    "TESLA",
+    "PORSCHE",
+    "LAMBORGHINI",
+    "ROLLS_ROYCE",
+    "ROLLS-ROYCE",
+    "TOYOTA",
+    "LEXUS",
+    "HONDA",
+    "MINI",
+    "LAND ROVER",
+    "JEEP",
+    "FORD",
+    "VOLKSWAGEN",
+}
 CAR_FIELDS = [
     "id",
     "_id",
@@ -91,6 +120,42 @@ def _json(data: Any) -> str:
 
 def _normalize_compare(value: Any) -> str:
     return str(value or "").strip().lower().replace("-", " ").replace("_", " ")
+
+
+def _company_key(company: Any) -> str:
+    return str(company or "").strip().upper().replace("-", "_")
+
+
+def _normalize_origin(origin: Optional[str]) -> Optional[str]:
+    if not origin:
+        return None
+
+    value = str(origin).strip().lower()
+    if value in {"domestic", "korean", "local"}:
+        return "domestic"
+    if value in {"imported", "foreign", "import"}:
+        return "imported"
+    return None
+
+
+def _matches_origin(company: Any, origin: Optional[str]) -> bool:
+    if not origin:
+        return True
+
+    normalized_company = normalize_company_query(str(company or "")) or str(company or "")
+    company_keys = {
+        _company_key(value)
+        for value in str(normalized_company).split(",")
+        if str(value).strip()
+    }
+    company_keys.add(_company_key(company))
+
+    if origin == "domestic":
+        return bool(company_keys & {_company_key(value) for value in DOMESTIC_COMPANIES})
+    if origin == "imported":
+        return bool(company_keys & {_company_key(value) for value in IMPORTED_COMPANIES})
+
+    return True
 
 
 def normalize_company_query(company: Optional[str]) -> Optional[str]:
@@ -397,6 +462,7 @@ def _get_car_detail(car_id: str) -> dict[str, Any]:
 
 class SearchCarsInput(BaseModel):
     company: Optional[str] = Field(default=None, description="제조사")
+    companies: Optional[str] = Field(default=None, description="여러 제조사. 쉼표로 구분")
     keyword: Optional[str] = Field(default=None, description="차량명 키워드")
     type: Optional[str] = Field(default=None, description="차종")
     fuel: Optional[str] = Field(default=None, description="연료")
@@ -412,6 +478,7 @@ class SearchCarsInput(BaseModel):
     sort_order: Optional[str] = Field(default=None, description="정렬 방향: asc 또는 desc")
     limit: Optional[int] = Field(default=None, description="검색 결과 제한. 최대 50")
     exclude_ids: Optional[str] = Field(default=None, description="제외할 차량 ID 목록. 쉼표로 구분")
+    origin: Optional[str] = Field(default=None, description="domestic 또는 imported 제조사 그룹")
 
 
 class CarDetailInput(BaseModel):
@@ -432,6 +499,7 @@ class DealerMessageInput(BaseModel):
 @tool(args_schema=SearchCarsInput)
 def search_cars(
     company: Optional[str] = None,
+    companies: Optional[str] = None,
     keyword: Optional[str] = None,
     type: Optional[str] = None,
     fuel: Optional[str] = None,
@@ -447,18 +515,22 @@ def search_cars(
     sort_order: Optional[str] = None,
     limit: Optional[int] = None,
     exclude_ids: Optional[str] = None,
+    origin: Optional[str] = None,
 ) -> str:
     """CarMarket 차량 검색 API에서 실제 등록 차량을 검색한다."""
 
     normalized_company = normalize_company_query(company)
+    normalized_companies = normalize_company_query(companies)
     normalized_type = normalize_type_query(type)
     normalized_fuel = normalize_fuel_query(fuel)
     normalized_sort_by = _normalize_sort_by(sort_by)
     normalized_sort_order = _normalize_sort_order(sort_order)
     normalized_limit = _normalize_limit(limit)
+    normalized_origin = _normalize_origin(origin)
     excluded_ids = _normalize_exclude_ids(exclude_ids)
     raw_params = {
         "company": normalized_company,
+        "companies": normalized_companies,
         "keyword": keyword,
         "type": normalized_type,
         "fuel": normalized_fuel,
@@ -483,8 +555,11 @@ def search_cars(
 
     if _is_development():
         print(f"normalized company: {normalized_company or ''}")
+        print(f"normalized companies: {normalized_companies or ''}")
+        print(f"detected origin: {normalized_origin or ''}")
         print(f"normalized type: {normalized_type or ''}")
         print(f"Tool call type parameter: {params.get('type', '')}")
+        print(f"Node request companies: {params.get('companies', '')}")
         print(f"Node request sortBy/sortOrder: {params.get('sortBy', '')}/{params.get('sortOrder', '')}")
         print(f"excluded car ids count: {len(excluded_ids)}")
 
@@ -507,6 +582,7 @@ def search_cars(
         car
         for car in data
         if isinstance(car, dict)
+        and _matches_origin(car.get("company"), normalized_origin)
         and _matches_normalized_query(car.get("type"), normalized_type)
         and _matches_normalized_query(car.get("fuel"), normalized_fuel)
         and str(car.get("id") or car.get("_id") or "") not in excluded_ids
@@ -523,6 +599,9 @@ def search_cars(
         print(f"Python sorted years before sorting: {before_years}")
         print(f"Python sorted years: {after_years}")
         print(f"Tool result count before filtering: {before_filter_count}")
+        print(f"result count before origin filter: {before_filter_count}")
+        print(f"result count after origin filter: {len(filtered_data)}")
+        print(f"selected company values: {','.join(str(car.get('company') or '') for car in sorted_data[:3])}")
         print(f"Tool result count after filtering: {len(sorted_data)}")
         print(f"search result count: {len(sorted_data)}")
         print(f"returned car ids: {','.join(str(car.get('id') or car.get('_id') or '') for car in sorted_data[:20])}")

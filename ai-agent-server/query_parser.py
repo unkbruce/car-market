@@ -37,6 +37,20 @@ def detect_company(message: str) -> str:
     return ""
 
 
+def detect_origin(message: str) -> str:
+    normalized_message = normalize_text(message)
+    domestic_patterns = ("국산차", "국내차", "국내 브랜드", "한국차", "국산")
+    imported_patterns = ("수입차", "외제차", "해외 브랜드", "수입")
+
+    if any(normalize_text(pattern) in normalized_message for pattern in domestic_patterns):
+        return "domestic"
+
+    if any(normalize_text(pattern) in normalized_message for pattern in imported_patterns):
+        return "imported"
+
+    return ""
+
+
 def detect_type_constraints(message: str) -> tuple[str, list[str]]:
     normalized_message = normalize_text(message)
 
@@ -225,6 +239,7 @@ def parse_search_filters(message: str, preserved_company: str) -> Filters:
         "company": preserved_company,
         "type": type_query,
         "fuel": detect_fuel(message),
+        "origin": detect_origin(message),
         "max_price": detect_max_price(message),
         "min_year": detect_min_year(message),
         "sort_by": sort_by,
@@ -241,7 +256,10 @@ def public_filter_args(filters: Filters) -> Filters:
     return {
         key: value
         for key, value in filters.items()
-        if not key.startswith("_") and key not in {"exclude_ids", "limit"} and value is not None and str(value).strip() != ""
+        if not key.startswith("_")
+        and key not in {"companies", "exclude_ids", "limit"}
+        and value is not None
+        and str(value).strip() != ""
     }
 
 
