@@ -525,13 +525,13 @@ def search_cars(
         print(f"Tool result count before filtering: {before_filter_count}")
         print(f"Tool result count after filtering: {len(sorted_data)}")
         print(f"search result count: {len(sorted_data)}")
-        print(f"returned car ids: {','.join(str(car.get('id') or car.get('_id') or '') for car in sorted_data[:8])}")
+        print(f"returned car ids: {','.join(str(car.get('id') or car.get('_id') or '') for car in sorted_data[:20])}")
 
     return _json({
         "success": True,
         "count": len(sorted_data),
-        "returnedCount": min(len(sorted_data), 8),
-        "data": [_compact_car(car) for car in sorted_data[:8]],
+        "returnedCount": min(len(sorted_data), 20),
+        "data": [_compact_car(car) for car in sorted_data[:20]],
     })
 
 
