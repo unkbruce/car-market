@@ -211,6 +211,8 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
+Windows에서 FastAPI를 재실행할 때는 8000번 포트에 이전 프로세스가 남아 있지 않은지 확인합니다.
+
 React:
 
 ```bash
@@ -289,11 +291,12 @@ SUV 비싼 가격순 추천해줘
 
 ## API 요약
 
+### Node.js API
+
 Health:
 
 ```text
 GET /api/health
-GET /health
 ```
 
 Cars:
@@ -311,7 +314,6 @@ Agent:
 
 ```text
 POST /api/agent/chat
-POST /agent/chat
 ```
 
 Users:
@@ -340,6 +342,14 @@ Socket.io 이벤트:
 - `receive-message`
 - `dealer-online`
 - `dealer-offline`
+
+### FastAPI Agent
+
+```text
+GET /health
+POST /agent/chat
+GET /docs
+```
 
 ## 프로젝트 문서
 
@@ -373,6 +383,10 @@ Socket.io 이벤트:
 실시간 상담:
 
 <img src="docs/screenshots/realtime-chat.png" alt="구매자와 딜러 실시간 상담 화면" width="900" />
+
+AI 차량 상담:
+
+<img src="docs/screenshots/ai-agent-chat.png" alt="LangGraph 기반 AI 상담, 자연어 차량 추천, 추천 차량 카드 화면" width="900" />
 
 ## 배포 메모
 
